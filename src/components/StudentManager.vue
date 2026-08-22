@@ -1,5 +1,5 @@
 <template>
-  <div class="hello">
+  <div class="student-manager">
     <h1>{{ msg }}</h1>
 
     <p v-if="error" class="error">{{ error }}</p>
@@ -29,7 +29,7 @@
 import { getAllStudents, createStudent } from '@/services/studentService'
 
 export default {
-  name: 'HelloWorld',
+  name: 'StudentManager',
   props: {
     msg: String
   },
