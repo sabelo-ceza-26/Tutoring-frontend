@@ -4,7 +4,7 @@
       <router-link to="/" class="brand">Tutoring Service</router-link>
       <div v-if="session" class="links">
         <span class="user">Hi, {{ session.name }} ({{ session.role }})</span>
-        <router-link to="/change-password">Change Password</router-link>
+        <router-link to="/profile">Profile</router-link>
         <button type="button" @click="doLogout">Logout</button>
       </div>
       <div v-else class="links">
