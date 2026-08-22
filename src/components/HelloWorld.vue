@@ -1,40 +1,82 @@
 <template>
   <div class="hello">
     <h1>{{ msg }}</h1>
-    <p>
-      For a guide and recipes on how to configure / customize this project,<br>
-      check out the
-      <a href="https://cli.vuejs.org" target="_blank" rel="noopener">vue-cli documentation</a>.
-    </p>
-    <h3>Installed CLI Plugins</h3>
+
+    <p v-if="error" class="error">{{ error }}</p>
+
+    <form class="create-form" @submit.prevent="saveStudent">
+      <h3>Create Student</h3>
+      <input v-model="newStudent.studentNumber" placeholder="Student Number" required>
+      <input v-model="newStudent.firstName" placeholder="First Name" required>
+      <input v-model="newStudent.lastName" placeholder="Last Name" required>
+      <input v-model="newStudent.email" type="email" placeholder="Email" required>
+      <input v-model="newStudent.phoneNumber" placeholder="Phone Number" required>
+      <input v-model="newStudent.password" type="password" placeholder="Password" required>
+      <input v-model="newStudent.levelOfStudy" placeholder="Level of Study" required>
+      <button type="submit">Create</button>
+    </form>
+
+    <h3>Students ({{ students.length }})</h3>
     <ul>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-babel" target="_blank" rel="noopener">babel</a></li>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-eslint" target="_blank" rel="noopener">eslint</a></li>
-    </ul>
-    <h3>Essential Links</h3>
-    <ul>
-      <li><a href="https://vuejs.org" target="_blank" rel="noopener">Core Docs</a></li>
-      <li><a href="https://forum.vuejs.org" target="_blank" rel="noopener">Forum</a></li>
-      <li><a href="https://chat.vuejs.org" target="_blank" rel="noopener">Community Chat</a></li>
-      <li><a href="https://twitter.com/vuejs" target="_blank" rel="noopener">Twitter</a></li>
-      <li><a href="https://news.vuejs.org" target="_blank" rel="noopener">News</a></li>
-    </ul>
-    <h3>Ecosystem</h3>
-    <ul>
-      <li><a href="https://router.vuejs.org" target="_blank" rel="noopener">vue-router</a></li>
-      <li><a href="https://vuex.vuejs.org" target="_blank" rel="noopener">vuex</a></li>
-      <li><a href="https://github.com/vuejs/vue-devtools#vue-devtools" target="_blank" rel="noopener">vue-devtools</a></li>
-      <li><a href="https://vue-loader.vuejs.org" target="_blank" rel="noopener">vue-loader</a></li>
-      <li><a href="https://github.com/vuejs/awesome-vue" target="_blank" rel="noopener">awesome-vue</a></li>
+      <li v-for="s in students" :key="s.studentNumber">
+        {{ s.firstName }} {{ s.lastName }} ({{ s.studentNumber }}) - {{ s.email }}
+      </li>
     </ul>
   </div>
 </template>
 
 <script>
+import { getAllStudents, createStudent } from '@/services/studentService'
+
 export default {
   name: 'HelloWorld',
   props: {
     msg: String
+  },
+  data() {
+    return {
+      students: [],
+      error: '',
+      newStudent: {
+        studentNumber: '',
+        firstName: '',
+        lastName: '',
+        email: '',
+        phoneNumber: '',
+        password: '',
+        levelOfStudy: ''
+      }
+    }
+  },
+  methods: {
+    async loadStudents() {
+      try {
+        this.students = await getAllStudents()
+        this.error = ''
+      } catch (e) {
+        this.error = e.message
+      }
+    },
+    async saveStudent() {
+      try {
+        await createStudent(this.newStudent)
+        this.newStudent = {
+          studentNumber: '',
+          firstName: '',
+          lastName: '',
+          email: '',
+          phoneNumber: '',
+          password: '',
+          levelOfStudy: ''
+        }
+        await this.loadStudents()
+      } catch (e) {
+        this.error = e.message
+      }
+    }
+  },
+  mounted() {
+    this.loadStudents()
   }
 }
 </script>
@@ -49,10 +91,24 @@ ul {
   padding: 0;
 }
 li {
-  display: inline-block;
-  margin: 0 10px;
+  display: block;
+  margin: 5px 0;
 }
 a {
   color: #42b983;
+}
+.error {
+  color: red;
+}
+.create-form input {
+  display: block;
+  margin: 6px auto;
+  padding: 6px;
+  width: 240px;
+}
+.create-form button {
+  margin-top: 8px;
+  padding: 6px 16px;
+  cursor: pointer;
 }
 </style>
