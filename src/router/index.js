@@ -6,6 +6,7 @@ import RegisterView from '@/views/Auth/RegisterView.vue'
 import HomeView from '@/views/Shared/HomeView.vue'
 import StudentManagement from '@/views/Student/StudentManagement.vue'
 import ChangePasswordView from '@/views/Auth/ChangePasswordView.vue'
+import ResetPasswordView from '@/views/Auth/ResetPasswordView.vue'
 import TutorManagement from '@/views/Tutor/TutorManagement.vue'
 
 Vue.use(VueRouter)
@@ -19,6 +20,7 @@ const routes = [
   { path: '/tutor-home', name: 'tutor-home', component: TutorManagement, meta: { requiresAuth: true, role: 'tutor' } },
   { path: '/admin-home', name: 'admin-home', component: HomeView, meta: { requiresAuth: true, role: 'admin' } },
   { path: '/change-password', name: 'change-password', component: ChangePasswordView, meta: { requiresAuth: true } },
+  { path: '/reset-password', name: 'reset-password', component: ResetPasswordView },
   { path: '*', redirect: '/login' }
 ]
 
