@@ -23,7 +23,7 @@
             <div class="profile-card">
 
                 <div class="profile-avatar">
-                    TN
+                    {{ initials }}
                 </div>
 
                 <h2>
@@ -38,11 +38,7 @@
                     <span>Hourly Rate</span>
 
                     <strong>
-                        {{ 
-                        tutor.hourlyRate
-                        ? 'R' + tutor.hourlyRate.toFixed(2)
-                        : 'Not set'
-                        }}
+                        {{ formattedHourlyRate || 'Not set' }}
                     </strong>
                 </div>
             </div>
@@ -105,10 +101,7 @@
             <span>Hourly Rate</span>
 
             <strong>
-              {{ tutor.hourlyRate
-                ? 'R' + tutor.hourlyRate.toFixed(2)
-                : 'Not set'
-              }}
+              {{ formattedHourlyRate || 'Not set' }}
             </strong>
           </div>
 
@@ -305,11 +298,16 @@
 
 
 <script>
+import { getSession, updateSession } from '@/services/authService'
+import { getTutorById, updateTutor } from '@/services/tutorService'
+
 export default {
   name: "TutorProfile",
 
   data() {
     return {
+
+      session: null,
 
       tutor: {
         tutorId: "",
@@ -344,9 +342,61 @@ export default {
       const name =
         `${this.tutor.firstName} ${this.tutor.lastName}`.trim()
 
-      return name || "Tutor Name"
+      if (name) {
+        return name
+      }
+
+      return this.session ? this.session.name : "Tutor"
+    },
+
+    initials() {
+      const words = this.fullName.trim().split(" ").filter(Boolean)
+
+      if (words.length === 0) {
+        return "TN"
+      }
+
+      if (words.length === 1) {
+        return words[0].charAt(0).toUpperCase()
+      }
+
+      return (words[0].charAt(0) + words[words.length - 1].charAt(0)).toUpperCase()
+    },
+
+    formattedHourlyRate() {
+      const rate = Number(this.tutor.hourlyRate)
+
+      if (this.tutor.hourlyRate === null || this.tutor.hourlyRate === "" || isNaN(rate)) {
+        return ""
+      }
+
+      return `R${rate.toFixed(2)}`
     }
 
+  },
+
+  async created() {
+    const session = getSession()
+
+    if (!session) {
+      return
+    }
+
+    this.session = session
+
+    if (!session.id) {
+      return
+    }
+
+    try {
+      const tutor = await getTutorById(session.id)
+
+      if (tutor && Object.keys(tutor).length) {
+        this.tutor = { ...this.tutor, ...tutor }
+      }
+    } catch (error) {
+      this.tutor.email = session.email || ""
+    }
   },
 
   methods: {
@@ -373,7 +423,7 @@ export default {
     },
 
 
-    saveProfile() {
+    async saveProfile() {
 
       if (
         !this.editForm.firstName ||
@@ -389,20 +439,33 @@ export default {
       }
 
 
-      this.tutor.firstName =
-        this.editForm.firstName
+      try {
 
-      this.tutor.lastName =
-        this.editForm.lastName
+        const updated = {
+          ...this.tutor,
+          firstName: this.editForm.firstName,
+          lastName: this.editForm.lastName,
+          email: this.editForm.email,
+          phoneNumber: this.editForm.phoneNumber
+        }
 
-      this.tutor.email =
-        this.editForm.email
+        await updateTutor(updated)
 
-      this.tutor.phoneNumber =
-        this.editForm.phoneNumber
+        this.tutor = { ...this.tutor, ...updated }
 
+        if (this.session) {
+          this.session = updateSession({
+            name: `${updated.firstName} ${updated.lastName}`.trim()
+          })
+        }
 
-      this.closeEditForm()
+        this.closeEditForm()
+
+      } catch (error) {
+
+        this.editError =
+          "Failed to save changes. Please try again."
+      }
     },
 
 
@@ -424,7 +487,7 @@ export default {
     },
 
 
-    saveHourlyRate() {
+    async saveHourlyRate() {
 
       if (
         this.newHourlyRate === null ||
@@ -447,11 +510,25 @@ export default {
       }
 
 
-      this.tutor.hourlyRate =
-        Number(this.newHourlyRate)
+      try {
 
+        const updated = {
+          ...this.tutor,
+          hourlyRate:
+            Number(this.newHourlyRate)
+        }
 
-      this.closeRateForm()
+        await updateTutor(updated)
+
+        this.tutor = { ...this.tutor, ...updated }
+
+        this.closeRateForm()
+
+      } catch (error) {
+
+        this.rateError =
+          "Failed to update the hourly rate. Please try again."
+      }
     }
 
   }
