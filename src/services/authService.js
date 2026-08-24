@@ -78,6 +78,22 @@ export async function loginAdmin(adminId) {
   return session
 }
 
+export async function resetPassword(email, newPassword) {
+  const students = await getAllStudents()
+  const student = students.find(s => s.email === email)
+  if (student) {
+    await updateStudent({ ...student, password: newPassword })
+    return 'student'
+  }
+  const tutors = await getAllTutors()
+  const tutor = tutors.find(t => t.email === email)
+  if (tutor) {
+    await updateTutor({ ...tutor, password: newPassword })
+    return 'tutor'
+  }
+  throw new Error('No account found with that email')
+}
+
 export async function changeStudentPassword(studentNumber, currentPassword, newPassword) {
   const student = await getStudentById(studentNumber)
   if (student.password !== currentPassword) {
