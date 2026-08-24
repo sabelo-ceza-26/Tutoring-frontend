@@ -1,15 +1,29 @@
 <template>
   <div id="app">
+    <transition name="splash-fade">
+      <div v-if="showSplash" class="splash-screen" aria-hidden="true">
+        <div class="splash-inner">
+          <div class="splash-logo-wrap">
+            <span class="splash-ring r1"></span>
+            <span class="splash-ring r2"></span>
+            <brand-logo :size="104" class="splash-logo" />
+          </div>
+          <h1 class="splash-title">FundaNathi Tutoring Service</h1>
+          <p class="splash-tagline">Learn brighter &middot; Teach further</p>
+          <div class="splash-bar"><span class="splash-bar-fill"></span></div>
+        </div>
+      </div>
+    </transition>
+
     <nav class="navbar">
-      <router-link to="/" class="brand">Tutoring Service</router-link>
+      <router-link to="/" class="brand">
+        <brand-logo :size="30" />
+        <span>FundaNathi Tutoring Service</span>
+      </router-link>
       <div v-if="session" class="links">
         <span class="user">Hi, {{ session.name }} ({{ session.role }})</span>
         <router-link to="/profile">Profile</router-link>
         <button type="button" @click="doLogout">Logout</button>
-      </div>
-      <div v-else class="links">
-        <router-link to="/login">Login</router-link>
-        <router-link to="/register">Register</router-link>
       </div>
     </nav>
 
@@ -19,13 +33,23 @@
 
 <script>
 import { getSession, logout } from '@/services/authService'
+import BrandLogo from '@/components/BrandLogo.vue'
 
 export default {
   name: 'App',
+  components: {
+    BrandLogo
+  },
   data() {
     return {
-      session: getSession()
+      session: getSession(),
+      showSplash: true
     }
+  },
+  mounted() {
+    setTimeout(() => {
+      this.showSplash = false
+    }, 2600)
   },
   watch: {
     $route() {
@@ -59,6 +83,9 @@ body {
 }
 
 .navbar .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   color: #fff;
   font-weight: bold;
   text-decoration: none;
@@ -174,5 +201,165 @@ body {
 
 .muted {
   color: #7f8c8d;
+}
+
+/* SPLASH SCREEN */
+.splash-screen {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 18% 22%, rgba(76, 212, 148, 0.26), transparent 44%),
+    radial-gradient(circle at 82% 78%, rgba(66, 185, 131, 0.16), transparent 46%),
+    linear-gradient(135deg, #16283a 0%, #1d3a50 48%, #123528 100%);
+}
+
+.splash-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 24px;
+}
+
+.splash-logo-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 36px;
+  animation: splash-pop 0.9s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+.splash-ring {
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  border: 2px solid rgba(76, 212, 148, 0.55);
+  animation: splash-ring 2s ease-out infinite;
+}
+
+.splash-ring.r2 {
+  animation-delay: 0.55s;
+}
+
+.splash-title {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(24px, 5vw, 40px);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  animation: splash-track 1.4s ease 0.25s both;
+}
+
+.splash-tagline {
+  margin: 12px 0 38px;
+  color: rgba(223, 230, 238, 0.72);
+  font-size: 14px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  animation: splash-fade-up 1s ease 0.65s both;
+}
+
+.splash-bar {
+  width: 190px;
+  height: 4px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.16);
+  overflow: hidden;
+}
+
+.splash-bar-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #4cd494, #baf3d4);
+  box-shadow: 0 0 12px rgba(76, 212, 148, 0.8);
+  animation: splash-fill 2.3s cubic-bezier(0.3, 0.6, 0.3, 1) forwards;
+}
+
+@keyframes splash-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.55) rotate(-8deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes splash-ring {
+  0% {
+    transform: scale(0.62);
+    opacity: 0.85;
+  }
+  70% {
+    opacity: 0.25;
+  }
+  100% {
+    transform: scale(1.28);
+    opacity: 0;
+  }
+}
+
+@keyframes splash-track {
+  from {
+    opacity: 0;
+    letter-spacing: 0.4em;
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    letter-spacing: 0.06em;
+    filter: blur(0);
+  }
+}
+
+@keyframes splash-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes splash-fill {
+  to {
+    width: 100%;
+  }
+}
+
+.splash-fade-leave-active {
+  transition: opacity 0.55s ease;
+}
+
+.splash-fade-leave-to {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .splash-ring {
+    display: none;
+  }
+
+  .splash-logo-wrap,
+  .splash-title,
+  .splash-tagline,
+  .splash-bar-fill {
+    animation-duration: 0.01s !important;
+    animation-delay: 0s !important;
+  }
 }
 </style>
