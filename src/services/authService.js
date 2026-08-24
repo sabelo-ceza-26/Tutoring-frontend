@@ -9,6 +9,16 @@ export function getSession() {
   return raw ? JSON.parse(raw) : null
 }
 
+export function updateSession(changes) {
+  const session = getSession()
+  if (!session) {
+    return null
+  }
+  const updated = { ...session, ...changes }
+  localStorage.setItem(SESSION_KEY, JSON.stringify(updated))
+  return updated
+}
+
 export function isLoggedIn() {
   return getSession() !== null
 }
