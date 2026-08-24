@@ -3,11 +3,11 @@
        
         <div class="profile-section">
             <div class="profile-image">
-                TN
+                {{ initials }}
             </div>
 
             <div class="profile-details">
-                <h3>Tutor Name</h3>
+                <h3>{{ fullName }}</h3>
                 <p>Tutor</p>
             </div>
         </div>
@@ -87,15 +87,37 @@
             >
                 Profile
             </button>
+
+            <button
+                class="nav-item logout-item"
+                @click="doLogout"
+            >
+                Logout
+            </button>
         </div>
+
+        <ConfirmDialog
+            v-if="showLogoutConfirm"
+            message="Are you sure you want to log out?"
+            @confirm="confirmLogout"
+            @cancel="showLogoutConfirm = false"
+        />
 
     </aside>
 </template>
 
 
 <script>
+import { getSession, logout } from '@/services/authService'
+import { getTutorById } from '@/services/tutorService'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
+
 export default {
     name: "TutorNavigation",
+
+    components: {
+        ConfirmDialog
+    },
 
     props: {
         activePage: {
@@ -104,9 +126,81 @@ export default {
         }
     },
 
+    data() {
+        return {
+            session: null,
+            firstName: "",
+            lastName: "",
+            showLogoutConfirm: false
+        }
+    },
+
+    computed: {
+        fullName() {
+            const name = `${this.firstName} ${this.lastName}`.trim()
+
+            if (name) {
+                return name
+            }
+
+            return this.session ? this.session.name : "Tutor"
+        },
+
+        initials() {
+            const words = this.fullName.trim().split(" ").filter(Boolean)
+
+            if (words.length === 0) {
+                return "TN"
+            }
+
+            if (words.length === 1) {
+                return words[0].charAt(0).toUpperCase()
+            }
+
+            return (words[0].charAt(0) + words[words.length - 1].charAt(0)).toUpperCase()
+        }
+    },
+
+    async created() {
+        const session = getSession()
+
+        if (!session) {
+            return
+        }
+
+        this.session = session
+
+        if (!session.id) {
+            return
+        }
+
+        try {
+            const tutor = await getTutorById(session.id)
+
+            if (tutor && Object.keys(tutor).length) {
+                this.firstName = tutor.firstName || ""
+                this.lastName = tutor.lastName || ""
+            }
+        } catch (error) {
+            this.firstName = ""
+            this.lastName = ""
+        }
+    },
+
     methods: {
         changePage(page) {
             this.$emit("change-page", page)
+        },
+
+        doLogout() {
+            this.showLogoutConfirm = true
+        },
+
+        confirmLogout() {
+            this.showLogoutConfirm = false
+
+            logout()
+            this.$router.push('/login')
         }
     }
 }
@@ -196,6 +290,14 @@ export default {
     color: #2c3e50;
     border-left: 4px solid #f28c28;
     font-weight: bold;
+}
+
+.nav-item.logout-item {
+    color: #c0392b;
+}
+
+.nav-item.logout-item:hover {
+    background-color: #fce8e6;
 }
 
 </style>

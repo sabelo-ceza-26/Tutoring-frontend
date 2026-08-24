@@ -5,8 +5,7 @@
 
             <section class="dashboard-header">
                 <div>
-                    <p class="header-label">TUTOR MANAGEMENT</p>
-                    <h1>Tutor Dashboard</h1>
+                    <h1>Welcome back, {{ fullName }}</h1>
                     <p class="header-description">
                         Manage your sessions and tutoring activity.
                     </p>
@@ -112,11 +111,11 @@
           <div class="profile-summary">
 
             <div class="profile-avatar">
-              T
+              {{ initials }}
             </div>
 
             <div class="profile-name">
-              <h3>Tutor Name</h3>
+              <h3>{{ fullName }}</h3>
               <p>Tutor</p>
             </div>
 
@@ -127,17 +126,17 @@
 
             <div class="information-row">
               <span>Email</span>
-              <strong>Not available</strong>
+              <strong>{{ displayEmail || 'Not available' }}</strong>
             </div>
 
             <div class="information-row">
               <span>Phone</span>
-              <strong>Not available</strong>
+              <strong>{{ tutor.phoneNumber || 'Not available' }}</strong>
             </div>
 
             <div class="information-row">
               <span>Hourly Rate</span>
-              <strong>Not set</strong>
+              <strong>{{ formattedHourlyRate || 'Not set' }}</strong>
             </div>
 
           </div>
@@ -354,8 +353,100 @@
 </template>
 
 <script>
+import { getSession } from '@/services/authService'
+import { getTutorById } from '@/services/tutorService'
+
 export default {
     name: "TutorDashboard",
+
+    data() {
+        return {
+            session: null,
+            tutor: {
+                tutorId: "",
+                firstName: "",
+                lastName: "",
+                email: "",
+                phoneNumber: "",
+                hourlyRate: null
+            }
+        }
+    },
+
+    computed: {
+        fullName() {
+            const name = `${this.tutor.firstName} ${this.tutor.lastName}`.trim()
+
+            if (name) {
+                return name
+            }
+
+            return this.session ? this.session.name : "Tutor"
+        },
+
+        initials() {
+            const words = this.fullName.trim().split(" ").filter(Boolean)
+
+            if (words.length === 0) {
+                return "T"
+            }
+
+            if (words.length === 1) {
+                return words[0].charAt(0).toUpperCase()
+            }
+
+            return (words[0].charAt(0) + words[words.length - 1].charAt(0)).toUpperCase()
+        },
+
+        displayEmail() {
+            if (this.tutor.email) {
+                return this.tutor.email
+            }
+
+            return this.session ? this.session.email : ""
+        },
+
+        formattedHourlyRate() {
+            const rate = Number(this.tutor.hourlyRate)
+
+            if (this.tutor.hourlyRate === null || this.tutor.hourlyRate === "" || isNaN(rate)) {
+                return ""
+            }
+
+            return `R${rate.toFixed(2)}`
+        }
+    },
+
+    async created() {
+        const session = getSession()
+
+        if (!session) {
+            return
+        }
+
+        this.session = session
+
+        if (!session.id) {
+            return
+        }
+
+        try {
+            const tutor = await getTutorById(session.id)
+
+            if (tutor && Object.keys(tutor).length) {
+                this.tutor = {
+                    tutorId: tutor.tutorId || "",
+                    firstName: tutor.firstName || "",
+                    lastName: tutor.lastName || "",
+                    email: tutor.email || "",
+                    phoneNumber: tutor.phoneNumber || "",
+                    hourlyRate: tutor.hourlyRate != null ? tutor.hourlyRate : null
+                }
+            }
+        } catch (error) {
+            this.tutor.email = session.email || ""
+        }
+    },
 
     methods: {
         changePage(page) {
@@ -387,14 +478,6 @@ export default {
   padding: 32px;
   border-radius: 12px;
   margin-bottom: 22px;
-}
-
-.header-label {
-  color: #f28c28;
-  font-size: 11px;
-  font-weight: bold;
-  letter-spacing: 1.5px;
-  margin: 0 0 7px;
 }
 
 .dashboard-header h1 {
