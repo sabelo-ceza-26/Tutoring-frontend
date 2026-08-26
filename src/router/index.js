@@ -8,6 +8,8 @@ import StudentManagement from '@/views/Student/StudentManagement.vue'
 import ChangePasswordView from '@/views/Auth/ChangePasswordView.vue'
 import ResetPasswordView from '@/views/Auth/ResetPasswordView.vue'
 import TutorManagement from '@/views/Tutor/TutorManagement.vue'
+import AdminLogin from '@/views/Admin/AdminLogin.vue'
+import AdminDashboard from '@/views/Admin/AdminDashboard.vue'
 
 Vue.use(VueRouter)
 
@@ -21,7 +23,9 @@ const routes = [
   { path: '/admin-home', name: 'admin-home', component: HomeView, meta: { requiresAuth: true, role: 'admin' } },
   { path: '/change-password', name: 'change-password', component: ChangePasswordView, meta: { requiresAuth: true } },
   { path: '/reset-password', name: 'reset-password', component: ResetPasswordView },
-  { path: '*', redirect: '/login' }
+  { path: '*', redirect: '/login' },
+  { path: '/admin/login', name: 'AdminLogin', component: AdminLogin },
+  {path: '/admin', name: 'AdminDashboard', component: AdminDashboard},
 ]
 
 const router = new VueRouter({
