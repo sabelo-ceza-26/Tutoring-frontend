@@ -1,7 +1,6 @@
 <template>
   <main class="subjects-content">
 
-  
     <section class="subjects-header">
       <div>
         <p class="header-label">TUTOR MANAGEMENT</p>
@@ -15,18 +14,17 @@
         class="header-button"
         @click="openAddForm"
       >
-        + Add Subject
+        + Add Subject Taught
       </button>
     </section>
 
-    <section class="subject-summary">
 
+    <section class="subject-summary">
       <div class="summary-card">
         <p class="summary-label">TOTAL SUBJECTS</p>
         <h2>{{ subjects.length }}</h2>
         <p>Subjects currently taught</p>
       </div>
-
     </section>
 
 
@@ -49,6 +47,14 @@
 
 
       <div
+        v-if="loading"
+        class="status-state"
+      >
+        Loading subjects...
+      </div>
+
+
+      <div
         v-for="subject in subjects"
         :key="subject.subjectCode"
         class="subject-row"
@@ -57,7 +63,10 @@
 
         <span>{{ subject.subjectName }}</span>
 
-        <span>{{ subject.yearsTaught }} years</span>
+        <span>
+          {{ subject.yearsTaught }}
+          {{ subject.yearsTaught === 1 ? 'year' : 'years' }}
+        </span>
 
         <button
           class="edit-button"
@@ -67,8 +76,9 @@
         </button>
       </div>
 
+
       <div
-        v-if="subjects.length === 0"
+        v-if="!loading && subjects.length === 0"
         class="empty-state"
       >
         <div class="empty-circle">+</div>
@@ -76,18 +86,27 @@
         <h3>No subjects added yet</h3>
 
         <p>
-          Add the subjects you currently teach.
+          Select a subject you teach and add your teaching experience.
         </p>
 
         <button
           class="add-button"
           @click="openAddForm"
         >
-          Add Subject
+          Add Subject Taught
         </button>
       </div>
 
+
+      <p
+        v-if="loadError"
+        class="load-error"
+      >
+        {{ loadError }}
+      </p>
+
     </section>
+
 
     <div
       v-if="showForm"
@@ -99,13 +118,14 @@
         <div class="form-header">
           <div>
             <h2>
-              {{ editing ? 'Edit Subject' : 'Add Subject' }}
+              {{ editing ? 'Edit Subject Taught' : 'Add Subject Taught' }}
             </h2>
 
             <p>
-              {{ editing
-                ? 'Update your subject information.'
-                : 'Add a subject to your tutoring profile.'
+              {{
+                editing
+                  ? 'Update the number of years you have taught this subject.'
+                  : 'Select a subject you teach and enter your teaching experience.'
               }}
             </p>
           </div>
@@ -120,25 +140,35 @@
 
 
         <div class="form-group">
-          <label>Subject Code</label>
+          <label>Tutor ID</label>
 
           <input
-            v-model="form.subjectCode"
+            :value="tutorId"
             type="text"
-            placeholder="Enter subject code"
-            :disabled="editing"
+            disabled
           >
         </div>
 
 
         <div class="form-group">
-          <label>Subject Name</label>
+          <label>Subject</label>
 
-          <input
-            v-model="form.subjectName"
-            type="text"
-            placeholder="Enter subject name"
+          <select
+            v-model="form.subjectCode"
+            :disabled="editing"
           >
+            <option value="">
+              Select a subject
+            </option>
+
+            <option
+              v-for="subject in selectableSubjects"
+              :key="subject.subjectCode"
+              :value="subject.subjectCode"
+            >
+              {{ subject.subjectCode }} - {{ subject.subjectName }}
+            </option>
+          </select>
         </div>
 
 
@@ -173,9 +203,16 @@
 
           <button
             class="save-button"
+            :disabled="saving"
             @click="saveSubject"
           >
-            {{ editing ? 'Save Changes' : 'Add Subject' }}
+            {{
+              saving
+                ? 'Saving...'
+                : editing
+                  ? 'Save Changes'
+                  : 'Add Subject'
+            }}
           </button>
 
         </div>
@@ -189,30 +226,139 @@
 
 
 <script>
+import { getAllSubjects } from '@/services/subjectService'
+import { getSession } from '@/services/authService'
+
 export default {
   name: "TutorSubjects",
 
   data() {
     return {
+      tutorId: "",
 
       subjects: [],
+      availableSubjects: [],
+
+      loading: false,
+      saving: false,
 
       showForm: false,
-
       editing: false,
 
       errorMessage: "",
+      loadError: "",
 
       form: {
         subjectCode: "",
-        subjectName: "",
         yearsTaught: null
       }
     }
   },
 
 
+  computed: {
+
+    selectableSubjects() {
+      if (this.editing) {
+        return this.availableSubjects
+      }
+
+      const existingSubjectCodes =
+        this.subjects.map(subject => subject.subjectCode)
+
+      return this.availableSubjects.filter(
+        subject =>
+          !existingSubjectCodes.includes(subject.subjectCode)
+      )
+    }
+
+  },
+
+
+  async mounted() {
+    const session = getSession()
+
+    if (!session || session.role !== "tutor") {
+      this.loadError =
+        "Tutor information could not be found."
+      return
+    }
+
+    this.tutorId = session.id
+
+    await this.loadData()
+  },
+
+
   methods: {
+
+    async loadData() {
+      this.loading = true
+      this.loadError = ""
+
+      try {
+        await this.loadSubjects()
+        await this.loadTutorSubjects()
+      } catch (error) {
+        console.error(error)
+
+        this.loadError =
+          "Unable to load subject information."
+      } finally {
+        this.loading = false
+      }
+    },
+
+
+    async loadSubjects() {
+      this.availableSubjects =
+        await getAllSubjects()
+    },
+
+
+    async loadTutorSubjects() {
+      const response = await fetch(
+        "/tutoring/tutorsubject/getAll"
+      )
+
+      if (!response.ok) {
+        throw new Error(
+          "Failed to retrieve tutor subjects."
+        )
+      }
+
+      const tutorSubjects =
+        await response.json()
+
+
+      const tutorRecords =
+        tutorSubjects.filter(
+          record =>
+            record.tutorId === this.tutorId
+        )
+
+
+      this.subjects = tutorRecords.map(record => {
+
+        const subjectDetails =
+          this.availableSubjects.find(
+            subject =>
+              subject.subjectCode === record.subjectCode
+          )
+
+        return {
+          subjectCode: record.subjectCode,
+
+          subjectName:
+            subjectDetails
+              ? subjectDetails.subjectName
+              : record.subjectCode,
+
+          yearsTaught: record.yearsTaught
+        }
+      })
+    },
+
 
     openAddForm() {
       this.editing = false
@@ -220,7 +366,6 @@ export default {
 
       this.form = {
         subjectCode: "",
-        subjectName: "",
         yearsTaught: null
       }
 
@@ -234,7 +379,6 @@ export default {
 
       this.form = {
         subjectCode: subject.subjectCode,
-        subjectName: subject.subjectName,
         yearsTaught: subject.yearsTaught
       }
 
@@ -245,59 +389,103 @@ export default {
     closeForm() {
       this.showForm = false
       this.errorMessage = ""
+      this.saving = false
     },
 
 
-    saveSubject() {
+    async saveSubject() {
+
+      this.errorMessage = ""
+
+
+      if (!this.tutorId) {
+        this.errorMessage =
+          "Tutor information could not be found."
+        return
+      }
+
+
+      if (!this.form.subjectCode) {
+        this.errorMessage =
+          "Please select a subject."
+        return
+      }
+
 
       if (
-        !this.form.subjectCode ||
-        !this.form.subjectName ||
-        this.form.yearsTaught === null
+        this.form.yearsTaught === null ||
+        this.form.yearsTaught === ""
       ) {
-        this.errorMessage = "Please complete all fields."
+        this.errorMessage =
+          "Please enter the number of years taught."
         return
       }
 
 
       if (this.form.yearsTaught < 0) {
-        this.errorMessage = "Years taught cannot be negative."
+        this.errorMessage =
+          "Years taught cannot be negative."
         return
       }
 
 
-      if (this.editing) {
-
-        const index = this.subjects.findIndex(
-          subject =>
-            subject.subjectCode === this.form.subjectCode
-        )
-
-        if (index !== -1) {
-          this.subjects.splice(index, 1, {
-            ...this.form
-          })
-        }
-
-      } else {
-
-        const alreadyExists = this.subjects.some(
-          subject =>
-            subject.subjectCode === this.form.subjectCode
-        )
-
-        if (alreadyExists) {
-          this.errorMessage = "This subject has already been added."
-          return
-        }
-
-        this.subjects.push({
-          ...this.form
-        })
+      const tutorSubject = {
+        subjectCode: this.form.subjectCode,
+        tutorId: this.tutorId,
+        yearsTaught: Number(this.form.yearsTaught)
       }
 
 
-      this.closeForm()
+      this.saving = true
+
+      try {
+
+        const url =
+          this.editing
+            ? "/tutoring/tutorsubject/update"
+            : "/tutoring/tutorsubject/create"
+
+
+        const method =
+          this.editing
+            ? "PUT"
+            : "POST"
+
+
+        const response = await fetch(url, {
+          method: method,
+
+          headers: {
+            "Content-Type": "application/json"
+          },
+
+          body: JSON.stringify(tutorSubject)
+        })
+
+
+        if (!response.ok) {
+          throw new Error(
+            "Failed to save tutor subject."
+          )
+        }
+
+
+        await this.loadTutorSubjects()
+
+        this.closeForm()
+
+      } catch (error) {
+
+        console.error(error)
+
+        this.errorMessage =
+          "Unable to save subject."
+
+      } finally {
+
+        this.saving = false
+
+      }
     }
 
   }
@@ -415,15 +603,10 @@ export default {
   font-size: 12px;
 }
 
-
 .table-header,
 .subject-row {
   display: grid;
-  grid-template-columns:
-    1fr
-    2fr
-    1fr
-    0.7fr;
+  grid-template-columns: 1fr 2fr 1fr 0.7fr;
   align-items: center;
 }
 
@@ -437,6 +620,16 @@ export default {
 .subject-row {
   padding: 15px 5px;
   border-top: 1px solid #e5e7eb;
+  font-size: 13px;
+}
+
+.status-state {
+  min-height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-top: 1px solid #e5e7eb;
+  color: #8a94a3;
   font-size: 13px;
 }
 
@@ -489,6 +682,11 @@ export default {
 .add-button:hover,
 .save-button:hover {
   background-color: #f28c28;
+}
+
+.save-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .edit-button {
@@ -568,7 +766,8 @@ export default {
   font-weight: bold;
 }
 
-.form-group input {
+.form-group input,
+.form-group select {
   border: 1px solid #d9dee5;
   border-radius: 7px;
   padding: 11px;
@@ -577,18 +776,28 @@ export default {
   outline: none;
 }
 
-.form-group input:focus {
+.form-group input:focus,
+.form-group select:focus {
   border-color: #f28c28;
 }
 
-.form-group input:disabled {
+.form-group input:disabled,
+.form-group select:disabled {
   background-color: #f7f8fa;
 }
 
-.error-message {
+.error-message,
+.load-error {
   color: #d9534f;
   font-size: 12px;
+}
+
+.error-message {
   margin: 0 0 15px;
+}
+
+.load-error {
+  margin: 15px 5px 0;
 }
 
 .form-actions {
@@ -613,7 +822,6 @@ export default {
   .subjects-header {
     flex-direction: column;
     align-items: flex-start;
-
     gap: 20px;
   }
 
