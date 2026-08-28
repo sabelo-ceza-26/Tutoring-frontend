@@ -15,17 +15,17 @@
       <section class="session-summary">
         <div class="summary-card">
           <p class="summary-label">TOTAL TODAY</p>
-          <h2>0</h2>
+          <h2>{{ todaysSessions.length }}</h2>
           <p>Scheduled sessions</p>
         </div>
         <div class="summary-card">
           <p class="summary-label">ONLINE</p>
-          <h2>0</h2>
+         <h2>{{ onlineToday }}</h2>
           <p>Online sessions</p>
         </div>
         <div class="summary-card">
           <p class="summary-label">IN PERSON</p>
-          <h2>0</h2>
+          <h2>{{ inPersonToday }}</h2>
           <p>In-person sessions</p>
         </div>
       </section>
@@ -39,18 +39,33 @@
         </div>
 
         <div class="table-header">
-          <span>Time</span>
+          <span>Date / Time</span>
           <span>Student</span>
           <span>Subject</span>
           <span>Duration</span>
           <span>Session Type</span>
         </div>
 
-        <div class="empty-state">
-          <div class="empty-circle">—</div>
-          <h3>No sessions scheduled</h3>
-          <p>You don't have any tutoring sessions scheduled for today.</p>
-        </div>
+        <div
+  v-for="session in todaysSessions"
+  :key="session.bookingId"
+  class="session-row"
+>
+  <span>{{ session.date }}</span>
+  <span>{{ session.studentNumber }}</span>
+  <span>{{ session.subjectCode }}</span>
+  <span>{{ session.duration }}</span>
+  <span>{{ session.sessionType }}</span>
+</div>
+
+<div
+  v-if="todaysSessions.length === 0"
+  class="empty-state"
+>
+  <div class="empty-circle">—</div>
+  <h3>No sessions scheduled</h3>
+  <p>You don't have any tutoring sessions scheduled for today.</p>
+</div>
       </section>
 
     </main>
@@ -60,6 +75,30 @@
 <script>
 export default {
   name: "TodaysSessions",
+
+  data() {
+    return {
+      todaysSessions: []
+    }
+  },
+
+  computed: {
+    onlineToday() {
+      return this.todaysSessions.filter(
+        session =>
+          session.sessionType &&
+          session.sessionType.toLowerCase() === "online"
+      ).length
+    },
+
+    inPersonToday() {
+      return this.todaysSessions.filter(
+        session =>
+          session.sessionType &&
+          session.sessionType.toLowerCase() === "in person"
+      ).length
+    }
+  }
 }
 </script>
 
@@ -172,6 +211,15 @@ export default {
   color: #8a94a3;
   font-size: 10px;
   font-weight: bold;
+}
+
+.session-row {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr 1.5fr 1fr 1fr;
+  padding: 15px 5px;
+  border-top: 1px solid #e5e7eb;
+  font-size: 13px;
+  align-items: center;
 }
 
 .empty-state {
