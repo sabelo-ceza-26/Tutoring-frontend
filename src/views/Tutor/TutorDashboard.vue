@@ -17,7 +17,7 @@
             <span class="summary-label">TODAY</span>
             <span class="summary-dot"></span>
           </div>
-          <h2>0</h2>
+          <h2>{{ todaysSessions.length }}</h2>
           <p>Today's Sessions</p>
         </div>
 
@@ -26,7 +26,7 @@
             <span class="summary-label">UPCOMING</span>
             <span class="summary-dot"></span>
           </div>
-          <h2>0</h2>
+          <h2>{{ upcomingSessions.length }}</h2>
           <p>Upcoming Sessions</p>
         </div>
 
@@ -35,7 +35,7 @@
             <span class="summary-label">COMPLETED</span>
             <span class="summary-dot"></span>
           </div>
-          <h2>0</h2>
+          <h2>{{ completedSessions.length }}</h2>
           <p>Completed Sessions</p>
         </div>
 
@@ -44,7 +44,7 @@
             <span class="summary-label">CANCELLED</span>
             <span class="summary-dot"></span>
           </div>
-          <h2>0</h2>
+          <h2>{{ cancelledSessions.length }}</h2>
           <p>Cancelled Sessions</p>
         </div>
       </section>
@@ -61,7 +61,10 @@
             </button>
           </div>
 
-          <div class="empty-state">
+          <div
+         v-if="todaysSessions.length === 0"
+         class="empty-state"
+          >
             <div class="empty-circle">—</div>
             <h3>No sessions scheduled</h3>
             <p>
@@ -128,8 +131,11 @@
               <span>Time</span>
               <span>Session Type</span>
             </div>
-            <div class="table-empty">
-              No upcoming sessions.
+            <div
+            v-if="upcomingSessions.length === 0"
+            class="table-empty"
+             >
+             No upcoming sessions.
             </div>
           </div>
         </div>
@@ -205,21 +211,21 @@
                 <span class="overview-dot"></span>
                 <span>Upcoming</span>
               </div>
-              <strong>0</strong>
+              <strong>{{ upcomingSessions.length }}</strong>
             </div>
             <div class="overview-item">
               <div>
                 <span class="overview-dot"></span>
                 <span>Completed</span>
               </div>
-              <strong>0</strong>
+              <strong>{{ completedSessions.length }}</strong>
             </div>
             <div class="overview-item">
               <div>
                 <span class="overview-dot"></span>
                 <span>Cancelled</span>
               </div>
-              <strong>0</strong>
+              <strong>{{ cancelledSessions.length }}</strong>
             </div>
           </div>
         </div>
@@ -270,7 +276,11 @@ export default {
                 phoneNumber: "",
                 hourlyRate: null
             },
-            subjects: []
+            subjects: [],
+            todaysSessions: [],
+            upcomingSessions: [],
+            completedSessions: [],
+            cancelledSessions: []
         }
     },
 
@@ -282,15 +292,17 @@ export default {
                 return name
             }
 
-            return this.session ? this.session.name : "Tutor"
-        },
+           return this.session && this.session.name
+        ? this.session.name
+        : ""
+         },          
 
         initials() {
             const words = this.fullName.trim().split(" ").filter(Boolean)
 
             if (words.length === 0) {
-                return "T"
-            }
+           return ""
+           }
 
             if (words.length === 1) {
                 return words[0].charAt(0).toUpperCase()
