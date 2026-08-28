@@ -15,17 +15,17 @@
       <section class="session-summary">
         <div class="summary-card">
           <p class="summary-label">TOTAL UPCOMING</p>
-          <h2>0</h2>
+          <h2>{{ upcomingSessions.length }}</h2>
           <p>Upcoming sessions</p>
         </div>
         <div class="summary-card">
           <p class="summary-label">ONLINE</p>
-          <h2>0</h2>
+          <h2>{{ onlineUpcoming }}</h2>
           <p>Online sessions</p>
         </div>
         <div class="summary-card">
           <p class="summary-label">IN PERSON</p>
-          <h2>0</h2>
+          <h2>{{ inPersonUpcoming }}</h2>
           <p>In-person sessions</p>
         </div>
       </section>
@@ -43,11 +43,27 @@
           <span>Time</span>
           <span>Student</span>
           <span>Subject</span>
-          <span>Duration Type</span>
+          <span>Duration</span>
           <span>Session Type</span>
         </div>
 
-        <div class="empty-state">
+        <div
+  v-for="session in upcomingSessions"
+  :key="session.bookingId"
+  class="session-row"
+>
+  <span>{{ formatDate(session.date) }}</span>
+  <span>{{ formatTime(session.date) }}</span>
+  <span>{{ session.studentNumber }}</span>
+  <span>{{ session.subjectCode }}</span>
+  <span>{{ session.duration }}</span>
+  <span>{{ session.sessionType }}</span>
+</div>
+
+        <div
+       v-if="upcomingSessions.length === 0"
+       class="empty-state"
+        >
           <div class="empty-circle">—</div>
           <h3>No upcoming sessions</h3>
           <p>You don't have any upcoming tutoring sessions scheduled.</p>
@@ -61,9 +77,76 @@
 <script>
 export default {
   name: "UpcomingSessions",
+
+  data() {
+    return {
+      upcomingSessions: []
+    }
+  },
+
+  computed: {
+    onlineUpcoming() {
+      return this.upcomingSessions.filter(
+        session =>
+          session.sessionType &&
+          session.sessionType.toLowerCase() === "online"
+      ).length
+    },
+
+    inPersonUpcoming() {
+      return this.upcomingSessions.filter(
+        session =>
+          session.sessionType &&
+          session.sessionType.toLowerCase() === "in person"
+      ).length
+    }
+  },
+
+  async mounted() {
+    await this.loadUpcomingSessions()
+  },
+
+  methods: {
+    async loadUpcomingSessions() {
+      try {
+        const response = await fetch("/tutoring/booking/getAll")
+
+        if (!response.ok) {
+          throw new Error("Failed to load bookings")
+        }
+
+        const bookings = await response.json()
+
+        const now = new Date()
+
+        this.upcomingSessions = bookings.filter(booking => {
+          const bookingDate = new Date(booking.date)
+          return bookingDate > now
+        })
+
+      } catch (error) {
+        console.error("Failed to load upcoming sessions:", error)
+        this.upcomingSessions = []
+      }
+    },
+
+    formatDate(date) {
+      if (!date) return ""
+
+      return new Date(date).toLocaleDateString()
+    },
+
+    formatTime(date) {
+      if (!date) return ""
+
+      return new Date(date).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit"
+      })
+    }
+  }
 }
 </script>
-
 <style scoped>
 .sessions-content {
   flex: 1;
@@ -182,6 +265,22 @@ export default {
   font-size: 10px;
   font-weight: bold;
 }
+
+.session-row {
+  display: grid;
+  grid-template-columns:
+    1fr
+    1fr
+    1.4fr
+    1.4fr
+    1fr
+    1fr;
+  padding: 15px 5px;
+  border-top: 1px solid #e5e7eb;
+  font-size: 13px;
+  align-items: center;
+}
+
 .empty-state {
   min-height: 250px;
   display: flex;
