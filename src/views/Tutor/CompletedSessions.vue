@@ -15,25 +15,25 @@
       <section class="session-summary">
         <div class="summary-card">
           <p class="summary-label">TOTAL COMPLETED</p>
-          <h2>0</h2>
+          <h2>{{ completedSessions.length }}</h2>
           <p>Completed sessions</p>
         </div>
         <div class="summary-card">
           <p class="summary-label">ONLINE</p>
-          <h2>0</h2>
-          <p>Complete online sessions</p>
+          <h2>{{ onlineCompleted }}</h2>
+          <p>Completed online sessions</p>
         </div>
         <div class="summary-card">
           <p class="summary-label">IN PERSON</p>
-          <h2>0</h2>
-          <p>Complete in-person sessions</p>
+          <h2>{{ inPersonCompleted }}</h2>
+          <p>Completed in-person sessions</p>
         </div>
       </section>
 
       <section class="sessions-card">
         <div class="card-header">
           <div>
-            <h2>Complete Session History</h2>
+            <h2>Completed Session History</h2>
             <p>Your previously completed sessions</p>
           </div>
         </div>
@@ -46,11 +46,26 @@
           <span>Session Type</span>
         </div>
 
-        <div class="empty-state">
-          <div class="empty-circle">✓</div>
-          <h3>No completed sessions</h3>
-          <p>Your completed tutoring sessions will appear here.</p>
-        </div>
+        <div
+  v-for="session in completedSessions"
+  :key="session.bookingId"
+  class="session-row"
+>
+  <span>{{ session.date }}</span>
+  <span>{{ session.studentNumber }}</span>
+  <span>{{ session.subjectCode }}</span>
+  <span>{{ session.duration }}</span>
+  <span>{{ session.sessionType }}</span>
+</div>
+
+<div
+  v-if="completedSessions.length === 0"
+  class="empty-state"
+>
+  <div class="empty-circle">✓</div>
+  <h3>No completed sessions</h3>
+  <p>Your completed tutoring sessions will appear here.</p>
+</div>
       </section>
 
     </main>
@@ -60,6 +75,30 @@
 <script>
 export default {
   name: "CompletedSessions",
+
+  data() {
+    return {
+      completedSessions: []
+    }
+  },
+
+  computed: {
+    onlineCompleted() {
+      return this.completedSessions.filter(
+        session =>
+          session.sessionType &&
+          session.sessionType.toLowerCase() === "online"
+      ).length
+    },
+
+    inPersonCompleted() {
+      return this.completedSessions.filter(
+        session =>
+          session.sessionType &&
+          session.sessionType.toLowerCase() === "in person"
+      ).length
+    }
+  }
 }
 </script>
 
@@ -159,9 +198,6 @@ export default {
   font-size: 12px;
   margin: 4px 0 0;
 
-}.card-header {
-  padding-bottom: 14px;
-  border-bottom: 1px solid #e5e7eb;
 }
 
 .table-header {
@@ -171,6 +207,15 @@ export default {
   color: #8a94a3;
   font-size: 10px;
   font-weight: bold;
+}
+
+.session-row {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr 1.5fr 1fr 1fr;
+  padding: 15px 5px;
+  border-top: 1px solid #e5e7eb;
+  font-size: 13px;
+  align-items: center;
 }
 
 .empty-state {
