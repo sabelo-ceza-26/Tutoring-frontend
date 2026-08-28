@@ -17,7 +17,7 @@
           </label>
           <label>
             New password
-            <input v-model="newPassword" type="password" placeholder="Enter a new password" required minlength="4">
+            <input v-model="newPassword" type="password" placeholder="Enter a new password" required minlength="8">
           </label>
           <label>
             Confirm new password

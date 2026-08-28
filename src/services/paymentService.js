@@ -7,14 +7,24 @@ function handleErrors(response) {
   return response
 }
 
+async function parseJson(response) {
+  const text = await response.text()
+  if (!text) return null
+  try {
+    return JSON.parse(text)
+  } catch (e) {
+    throw new Error('Invalid response from server')
+  }
+}
+
 export async function getAllPayments() {
   const response = await fetch(`${BASE_URL}/getAll`)
-  return handleErrors(response).json()
+  return parseJson(await handleErrors(response))
 }
 
 export async function getPaymentById(paymentRef) {
   const response = await fetch(`${BASE_URL}/read/${encodeURIComponent(paymentRef)}`)
-  return handleErrors(response).json()
+  return parseJson(await handleErrors(response))
 }
 
 export async function createPayment(payment) {
@@ -23,7 +33,7 @@ export async function createPayment(payment) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payment)
   })
-  return handleErrors(response).json()
+  return parseJson(await handleErrors(response))
 }
 
 export async function updatePayment(payment) {
@@ -32,7 +42,7 @@ export async function updatePayment(payment) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payment)
   })
-  return handleErrors(response).json()
+  return parseJson(await handleErrors(response))
 }
 
 export async function deletePayment(paymentRef) {

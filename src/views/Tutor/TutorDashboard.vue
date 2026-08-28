@@ -1,105 +1,76 @@
 <template>
-    <div class="dashboard-layout">
+  <div class="dashboard-layout">
+    <main class="dashboard-content">
 
-        <main class="dashboard-content">
+      <section class="dashboard-header">
+        <div>
+          <h1>Welcome back, {{ fullName }}</h1>
+          <p class="header-description">
+            Manage your sessions and tutoring activity.
+          </p>
+        </div>
+      </section>
 
-            <section class="dashboard-header">
-                <div>
-                    <h1>Welcome back, {{ fullName }}</h1>
-                    <p class="header-description">
-                        Manage your sessions and tutoring activity.
-                    </p>
-                </div>
-            </section>
+      <section class="summary-cards">
+        <div class="summary-card clickable-card" @click="changePage('today')">
+          <div class="summary-top">
+            <span class="summary-label">TODAY</span>
+            <span class="summary-dot"></span>
+          </div>
+          <h2>0</h2>
+          <p>Today's Sessions</p>
+        </div>
 
-            <section class="summary-cards">
+        <div class="summary-card clickable-card" @click="changePage('upcoming')">
+          <div class="summary-top">
+            <span class="summary-label">UPCOMING</span>
+            <span class="summary-dot"></span>
+          </div>
+          <h2>0</h2>
+          <p>Upcoming Sessions</p>
+        </div>
 
-                <div 
-                class="summary-card clickable-card"
-                @click="changePage('today')"
->
-                    <div class="summary-top">
-                        <span class="summary-label">TODAY</span>
-                            <span class="summary-dot"></span>
-                    </div>
+        <div class="summary-card clickable-card" @click="changePage('completed')">
+          <div class="summary-top">
+            <span class="summary-label">COMPLETED</span>
+            <span class="summary-dot"></span>
+          </div>
+          <h2>0</h2>
+          <p>Completed Sessions</p>
+        </div>
 
-                    <h2>0</h2>
-                    <p>Today's Sessions</p>
-                </div>
+        <div class="summary-card clickable-card" @click="changePage('cancelled')">
+          <div class="summary-top">
+            <span class="summary-label">CANCELLED</span>
+            <span class="summary-dot"></span>
+          </div>
+          <h2>0</h2>
+          <p>Cancelled Sessions</p>
+        </div>
+      </section>
 
-                <div
-                class="summary-card clickable-card"
-                @click="changePage('upcoming')"
->
-                    <div class="summary-top">
-                        <span class="summary-label">UPCOMING</span>
-                            <span class="summary-dot"></span>
-                    </div>
-
-                    <h2>0</h2>
-                    <p>Upcoming Sessions</p>
-                </div>
-
-                <div 
-                class="summary-card clickable-card"
-                @click="changePage('completed')"
->
-                    <div class="summary-top">
-                        <span class="summary-label">COMPLETED</span>
-                            <span class="summary-dot"></span>
-                    </div>
-
-                    <h2>0</h2>
-                    <p>Completed Sessions</p>
-                </div>
-
-                <div 
-                class="summary-card clickable-card"
-                @click="changePage('cancelled')"
->
-                    <div class="summary-top">
-                        <span class="summary-label">CANCELLED</span>
-                            <span class="summary-dot"></span>
-                    </div>
-
-                    <h2>0</h2>
-                    <p>Cancelled Sessions</p>
-                </div>
-            </section>
-
-            <section class="dashboard-row">
-
-        
+      <section class="dashboard-row">
         <div class="dashboard-card large-card">
-
           <div class="card-header">
             <div>
               <h2>Today's Sessions</h2>
               <p>Your tutoring schedule for today</p>
             </div>
-
-           <button
-    class="text-button"
-    @click="changePage('today')"
->
-    View All
-</button>
+            <button class="text-button" @click="changePage('today')">
+              View All
+            </button>
           </div>
 
           <div class="empty-state">
             <div class="empty-circle">—</div>
-
             <h3>No sessions scheduled</h3>
-
             <p>
               You don't have any tutoring sessions scheduled for today.
             </p>
           </div>
-
         </div>
 
         <div class="dashboard-card side-card">
-
           <div class="card-header">
             <div>
               <h2>Profile Summary</h2>
@@ -107,91 +78,63 @@
             </div>
           </div>
 
-
           <div class="profile-summary">
-
             <div class="profile-avatar">
               {{ initials }}
             </div>
-
             <div class="profile-name">
               <h3>{{ fullName }}</h3>
               <p>Tutor</p>
             </div>
-
           </div>
 
-
           <div class="profile-information">
-
             <div class="information-row">
               <span>Email</span>
               <strong>{{ displayEmail || 'Not available' }}</strong>
             </div>
-
             <div class="information-row">
               <span>Phone</span>
               <strong>{{ tutor.phoneNumber || 'Not available' }}</strong>
             </div>
-
             <div class="information-row">
               <span>Hourly Rate</span>
               <strong>{{ formattedHourlyRate || 'Not set' }}</strong>
             </div>
-
           </div>
 
-
-          <button 
-          class="outline-button"
-          @click="changePage('profile')"
-          >
+          <button class="outline-button" @click="changePage('profile')">
             Edit Profile
           </button>
-
         </div>
-
       </section>
 
-
       <section class="dashboard-row">
-
         <div class="dashboard-card large-card">
-
           <div class="card-header">
             <div>
               <h2>Upcoming Sessions</h2>
               <p>Your next scheduled tutoring sessions</p>
             </div>
-
-            <button
-  class="text-button"
-  @click="changePage('upcoming')"
->
-  View All
-</button>
-        </div>
+            <button class="text-button" @click="changePage('upcoming')">
+              View All
+            </button>
+          </div>
 
           <div class="session-table">
-
             <div class="table-header">
               <span>Date</span>
               <span>Subject</span>
               <span>Time</span>
               <span>Session Type</span>
             </div>
-
-
             <div class="table-empty">
               No upcoming sessions.
             </div>
-
           </div>
-
         </div>
 
         <div class="dashboard-card side-card">
-
           <div class="card-header">
             <div>
               <h2>Availability</h2>
@@ -199,51 +142,31 @@
             </div>
           </div>
 
-
           <div class="small-empty-state">
-
-            <div class="empty-circle small-circle">
-              —
-            </div>
-
+            <div class="empty-circle small-circle">—</div>
             <h3>No availability set</h3>
-
             <p>
               Set the days and times you're available to tutor.
             </p>
-
           </div>
 
-
-         <button
-  class="outline-button"
-  @click="changePage('availability')"
->
-  Set Availability
-</button>
-
+          <button class="outline-button" @click="changePage('availability')">
+            Set Availability
+          </button>
         </div>
-
       </section>
 
       <section class="dashboard-row">
-
         <div class="dashboard-card large-card">
-
           <div class="card-header">
             <div>
               <h2>Subjects Taught</h2>
               <p>Manage the subjects you currently teach</p>
             </div>
-
-            <button
-  class="text-button"
-  @click="changePage('subjects')"
->
-  Manage Subjects
+            <button class="text-button" @click="changePage('subjects')">
+              Manage Subjects
             </button>
           </div>
-
 
           <div class="subject-header">
             <span>Subject Code</span>
@@ -251,15 +174,24 @@
             <span>Years Taught</span>
           </div>
 
-
-          <div class="table-empty">
-            No subjects added yet.
+          <div v-if="subjects.length">
+            <div
+              v-for="s in subjects"
+              :key="s.subjectCode"
+              class="subject-row"
+            >
+              <strong>{{ s.subjectCode }}</strong>
+              <span>{{ s.subjectName }}</span>
+              <span>{{ s.yearsTaught }} {{ s.yearsTaught === 1 ? 'year' : 'years' }}</span>
+            </div>
           </div>
 
+          <div v-else class="table-empty">
+            No subjects added yet.
+          </div>
         </div>
 
         <div class="dashboard-card side-card">
-
           <div class="card-header">
             <div>
               <h2>Session Overview</h2>
@@ -267,94 +199,62 @@
             </div>
           </div>
 
-
           <div class="overview-list">
-
             <div class="overview-item">
               <div>
                 <span class="overview-dot"></span>
                 <span>Upcoming</span>
               </div>
-
               <strong>0</strong>
             </div>
-
-
             <div class="overview-item">
               <div>
                 <span class="overview-dot"></span>
                 <span>Completed</span>
               </div>
-
               <strong>0</strong>
             </div>
-
-
             <div class="overview-item">
               <div>
                 <span class="overview-dot"></span>
                 <span>Cancelled</span>
               </div>
-
               <strong>0</strong>
             </div>
-
           </div>
-
         </div>
-
       </section>
 
 
       <section class="quick-actions">
-
         <div class="quick-actions-heading">
           <h2>Quick Actions</h2>
           <p>Quickly manage your tutor information and schedule.</p>
         </div>
 
-
         <div class="action-buttons">
-
-          <button 
-          class="action-button"
-          @click="changePage('profile')"
-          >
+          <button class="action-button" @click="changePage('profile')">
             Update Profile
           </button>
 
-          <button 
-          class="action-button"
-          @click="changePage('profile')"
-          >
-            Update Hourly Rate
+          <button class="action-button" @click="changePage('subjects')">
+            Add Subject
           </button>
 
-          <button
-  class="action-button"
-  @click="changePage('subjects')"
->
-  Add Subject
-</button>
-
-          <button
-  class="action-button"
-  @click="changePage('availability')"
->
-  Set Availability
-</button>
+          <button class="action-button" @click="changePage('availability')">
+            Set Availability
+          </button>
         </div>
-
       </section>
 
     </main>
-
   </div>
 </template>
 
 <script>
 import { getSession } from '@/services/authService'
 import { getTutorById } from '@/services/tutorService'
+import { getAllSubjects } from '@/services/subjectService'
 
 export default {
     name: "TutorDashboard",
@@ -369,7 +269,8 @@ export default {
                 email: "",
                 phoneNumber: "",
                 hourlyRate: null
-            }
+            },
+            subjects: []
         }
     },
 
@@ -443,6 +344,8 @@ export default {
                     hourlyRate: tutor.hourlyRate != null ? tutor.hourlyRate : null
                 }
             }
+
+            await this.loadSubjects()
         } catch (error) {
             this.tutor.email = session.email || ""
         }
@@ -451,6 +354,28 @@ export default {
     methods: {
         changePage(page) {
             this.$emit("change-page", page)
+        },
+
+        async loadSubjects() {
+            try {
+                const [allSubjects, tutorSubjectsRes] = await Promise.all([
+                    getAllSubjects(),
+                    fetch('/tutoring/tutorsubject/getAll').then(r => r.json())
+                ])
+
+                const myRecords = tutorSubjectsRes.filter(r => r.tutorId === this.tutor.tutorId)
+
+                this.subjects = myRecords.map(record => {
+                    const details = allSubjects.find(s => s.subjectCode === record.subjectCode)
+                    return {
+                        subjectCode: record.subjectCode,
+                        subjectName: details ? details.subjectName : record.subjectCode,
+                        yearsTaught: record.yearsTaught
+                    }
+                })
+            } catch (e) {
+                this.subjects = []
+            }
         }
     }
 }
@@ -686,6 +611,15 @@ export default {
 
 .subject-header {
   grid-template-columns: 1fr 2fr 1fr;
+}
+
+.subject-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  padding: 12px 5px;
+  border-top: 1px solid #e5e7eb;
+  font-size: 13px;
+  align-items: center;
 }
 
 .table-empty {

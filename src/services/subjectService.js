@@ -7,14 +7,24 @@ function handleErrors(response) {
   return response
 }
 
+async function parseJson(response) {
+  const text = await response.text()
+  if (!text) return null
+  try {
+    return JSON.parse(text)
+  } catch (e) {
+    throw new Error('Invalid response from server')
+  }
+}
+
 export async function getAllSubjects() {
   const response = await fetch(`${BASE_URL}/getAll`)
-  return handleErrors(response).json()
+  return parseJson(await handleErrors(response))
 }
 
 export async function getSubjectById(subjectCode) {
   const response = await fetch(`${BASE_URL}/read/${encodeURIComponent(subjectCode)}`)
-  return handleErrors(response).json()
+  return parseJson(await handleErrors(response))
 }
 
 export async function createSubject(subject) {
@@ -23,7 +33,7 @@ export async function createSubject(subject) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(subject)
   })
-  return handleErrors(response).json()
+  return parseJson(await handleErrors(response))
 }
 
 export async function updateSubject(subject) {
@@ -32,7 +42,7 @@ export async function updateSubject(subject) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(subject)
   })
-  return handleErrors(response).json()
+  return parseJson(await handleErrors(response))
 }
 
 export async function deleteSubject(subjectCode) {

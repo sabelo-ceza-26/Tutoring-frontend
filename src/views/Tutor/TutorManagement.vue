@@ -7,41 +7,26 @@
     />
 
     <div class="page-content">
-
       <TutorDashboard
         v-if="currentPage === 'dashboard'"
         @change-page="changePage"
       />
 
-      <TodaysSessions
-        v-if="currentPage === 'today'"
-      />
+      <TodaysSessions v-if="currentPage === 'today'" />
 
-      <UpcomingSessions
-        v-if="currentPage === 'upcoming'"
-      />
+      <UpcomingSessions v-if="currentPage === 'upcoming'" />
 
-      <CompletedSessions
-        v-if="currentPage === 'completed'"
-      />
+      <CompletedSessions v-if="currentPage === 'completed'" />
 
-      <CancelledSessions
-        v-if="currentPage === 'cancelled'"
-      />
+      <CancelledSessions v-if="currentPage === 'cancelled'" />
 
-      <TutorSubjects
-       v-if="currentPage === 'subjects'"
-       />
+      <TutorSubjects v-if="currentPage === 'subjects'" />
 
-    <TutorAvailability
-     v-if="currentPage === 'availability'"
-     />
+      <TutorAvailability v-if="currentPage === 'availability'" />
 
-     <TutorProfile
-    v-if="currentPage === 'profile'"
-     />
+      <TutorProfile v-if="currentPage === 'profile'" />
 
-
+      <TutorSearch v-if="currentPage === 'search'" />
     </div>
 
   </div>
@@ -57,6 +42,7 @@ import CancelledSessions from './CancelledSessions.vue'
 import TutorSubjects from './TutorSubjects.vue'
 import TutorAvailability from './TutorAvailability.vue'
 import TutorProfile from './TutorProfile.vue'
+import TutorSearch from './TutorSearch.vue'
 
 export default {
   name: "TutorManagement",
@@ -70,7 +56,8 @@ export default {
     CancelledSessions,
     TutorSubjects,
     TutorAvailability,
-    TutorProfile
+    TutorProfile,
+    TutorSearch
   },
 
   data() {

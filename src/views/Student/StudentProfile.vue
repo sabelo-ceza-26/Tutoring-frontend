@@ -71,7 +71,7 @@
 </template>
 
 <script>
-import { getSession, logout } from '@/services/authService'
+import { getSession, saveSession, logout } from '@/services/authService'
 import { updateStudent, deleteStudent } from '@/services/studentService'
 
 export default {
@@ -158,7 +158,7 @@ export default {
                     password: this.me.password
                 })
                 this.session.name = `${this.profileForm.firstName} ${this.profileForm.lastName}`
-                localStorage.setItem('tutoring_session', JSON.stringify(this.session))
+                saveSession(this.session)
                 this.$emit("refresh")
                 this.notify('success', 'Profile updated.')
             } catch (e) {

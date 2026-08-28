@@ -1,109 +1,106 @@
 <template>
-    <aside class="tutor-navigation">
-       
-        <div class="profile-section">
-            <div class="profile-image">
-                {{ initials }}
-            </div>
+  <aside class="tutor-navigation">
 
-            <div class="profile-details">
-                <h3>{{ fullName }}</h3>
-                <p>Tutor</p>
-            </div>
-        </div>
+    <div class="profile-section">
+      <div class="profile-image">
+        {{ initials }}
+      </div>
 
-        <div class="navigation-section">
-            <p class="section-title">MANAGEMENT</p>
+      <div class="profile-details">
+        <h3>{{ fullName }}</h3>
+        <p>Tutor</p>
+      </div>
+    </div>
 
-            <button
-            class="nav-item"
-              :class="{ active: activePage === 'dashboard' }"
-                @click="changePage('dashboard')"
-            >
-                Dashboard
-        </button>
-        </div>
+    <div class="navigation-section">
+      <p class="section-title">MANAGEMENT</p>
+      <button
+        class="nav-item"
+        :class="{ active: activePage === 'dashboard' }"
+        @click="changePage('dashboard')"
+      >
+        Dashboard
+      </button>
+      <button
+        class="nav-item"
+        :class="{ active: activePage === 'search' }"
+        @click="changePage('search')"
+      >
+        Search
+      </button>
+    </div>
 
-        <div class="navigation-section">
-            <p class="section-title">SESSIONS</p>
+    <div class="navigation-section">
+      <p class="section-title">SESSIONS</p>
+      <button
+        class="nav-item"
+        :class="{ active: activePage === 'today' }"
+        @click="changePage('today')"
+      >
+        Today's Sessions
+      </button>
+      <button
+        class="nav-item"
+        :class="{ active: activePage === 'upcoming' }"
+        @click="changePage('upcoming')"
+      >
+        Upcoming Sessions
+      </button>
+      <button
+        class="nav-item"
+        :class="{ active: activePage === 'completed' }"
+        @click="changePage('completed')"
+      >
+        Completed Sessions
+      </button>
+      <button
+        class="nav-item"
+        :class="{ active: activePage === 'cancelled' }"
+        @click="changePage('cancelled')"
+      >
+        Cancelled Sessions
+      </button>
+    </div>
 
-            <button
-            class="nav-item"
-              :class="{ active: activePage === 'today' }"
-                @click="changePage('today')"
-            >
-                Today's Sessions
-        </button>
+    <div class="navigation-section">
+      <p class="section-title">TUTOR</p>
+      <button
+        class="nav-item"
+        :class="{ active: activePage === 'subjects' }"
+        @click="changePage('subjects')"
+      >
+        Subjects Taught
+      </button>
+      <button
+        class="nav-item"
+        :class="{ active: activePage === 'availability' }"
+        @click="changePage('availability')"
+      >
+        Availability
+      </button>
+      <button
+        class="nav-item"
+        :class="{ active: activePage === 'profile' }"
+        @click="changePage('profile')"
+      >
+        Profile
+      </button>
+      <button
+        class="nav-item logout-item"
+        @click="doLogout"
+      >
+        Logout
+      </button>
+    </div>
 
+    <ConfirmDialog
+      v-if="showLogoutConfirm"
+      message="Are you sure you want to log out?"
+      @confirm="confirmLogout"
+      @cancel="showLogoutConfirm = false"
+    />
 
-        <button
-            class="nav-item"
-              :class="{ active: activePage === 'upcoming' }"
-                @click="changePage('upcoming')"
-            >
-                Upcoming Sessions
-        </button>
-
-        <button
-            class="nav-item"
-              :class="{ active: activePage === 'completed' }"
-                @click="changePage('completed')"
-            >
-                Completed Sessions
-        </button>
-
-        <button
-            class="nav-item"
-              :class="{ active: activePage === 'cancelled' }"
-                @click="changePage('cancelled')"
-            >
-                Cancelled Sessions
-        </button>
-        </div>
-
-        <div class="navigation-section">
-            <p class="section-title">TUTOR</p>
-
-            <button
-                class="nav-item"
-                :class="{ active: activePage === 'subjects' }"
-                @click="changePage('subjects')"
-            >
-                Subjects Taught
-            </button>
-
-            <button
-                class="nav-item"
-                :class="{ active: activePage === 'availability' }"
-                @click="changePage('availability')"
-            >
-                Availability
-            </button>
-
-            <button
-                class="nav-item"
-                :class="{ active: activePage === 'profile' }"
-                @click="changePage('profile')"
-            >
-                Profile
-            </button>
-
-            <button
-                class="nav-item logout-item"
-                @click="doLogout"
-            >
-                Logout
-            </button>
-        </div>
-
-        <ConfirmDialog
-            v-if="showLogoutConfirm"
-            message="Are you sure you want to log out?"
-            @confirm="confirmLogout"
-            @cancel="showLogoutConfirm = false"
-        />
-
-    </aside>
+  </aside>
 </template>
 
 

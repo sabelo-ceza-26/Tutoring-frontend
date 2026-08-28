@@ -7,14 +7,24 @@ function handleErrors(response) {
   return response
 }
 
+async function parseJson(response) {
+  const text = await response.text()
+  if (!text) return null
+  try {
+    return JSON.parse(text)
+  } catch (e) {
+    throw new Error('Invalid response from server')
+  }
+}
+
 export async function getAllBookings() {
   const response = await fetch(`${BASE_URL}/getAll`)
-  return handleErrors(response).json()
+  return parseJson(await handleErrors(response))
 }
 
 export async function getBookingById(bookingId) {
   const response = await fetch(`${BASE_URL}/read/${encodeURIComponent(bookingId)}`)
-  return handleErrors(response).json()
+  return parseJson(await handleErrors(response))
 }
 
 export async function createBooking(booking) {
@@ -23,7 +33,7 @@ export async function createBooking(booking) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(booking)
   })
-  return handleErrors(response).json()
+  return parseJson(await handleErrors(response))
 }
 
 export async function updateBooking(booking) {
@@ -32,7 +42,7 @@ export async function updateBooking(booking) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(booking)
   })
-  return handleErrors(response).json()
+  return parseJson(await handleErrors(response))
 }
 
 export async function deleteBooking(bookingId) {

@@ -28,10 +28,16 @@
               <input v-model="password" type="password" placeholder="Enter your password" required>
             </label>
           </template>
-          <label v-else>
-            Admin ID
-            <input v-model.trim="adminId" placeholder="Enter your admin ID" required>
-          </label>
+          <template v-else>
+            <label>
+              Admin ID
+              <input v-model.trim="adminId" placeholder="Enter your admin ID" required>
+            </label>
+            <label>
+              Password
+              <input v-model="password" type="password" placeholder="Enter your password" required>
+            </label>
+          </template>
 
           <transition name="fade">
             <p v-if="error" class="banner error-banner">{{ error }}</p>
@@ -57,7 +63,8 @@
 </template>
 
 <script>
-import { loginStudent, loginTutor, loginAdmin } from '@/services/authService'
+import { loginStudent, loginTutor, saveSession } from '@/services/authService'
+import { adminLogin } from '@/services/adminService'
 import BrandLogo from '@/components/BrandLogo.vue'
 
 const VALID_ROLES = ['student', 'tutor', 'admin']
@@ -113,7 +120,15 @@ export default {
         } else if (this.role === 'tutor') {
           session = await loginTutor(this.email, this.password)
         } else {
-          session = await loginAdmin(this.adminId)
+          const admin = await adminLogin(this.adminId, this.password)
+          if (!admin) throw new Error('Invalid admin ID or password')
+          session = {
+            role: 'admin',
+            id: admin.adminId,
+            name: `${admin.firstName || ''} ${admin.lastName || ''}`.trim() || 'Administrator',
+            email: admin.email
+          }
+          saveSession(session)
         }
         this.$router.push(`/${session.role}-home`)
       } catch (e) {

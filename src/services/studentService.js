@@ -7,14 +7,24 @@ function handleErrors(response) {
   return response
 }
 
+async function parseJson(response) {
+  const text = await response.text()
+  if (!text) return null
+  try {
+    return JSON.parse(text)
+  } catch (e) {
+    throw new Error('Invalid response from server')
+  }
+}
+
 export async function getAllStudents() {
   const response = await fetch(`${BASE_URL}/getAll`)
-  return handleErrors(response).json()
+  return parseJson(await handleErrors(response))
 }
 
 export async function getStudentById(studentNumber) {
   const response = await fetch(`${BASE_URL}/read/${encodeURIComponent(studentNumber)}`)
-  return handleErrors(response).json()
+  return parseJson(await handleErrors(response))
 }
 
 export async function createStudent(student) {
@@ -23,7 +33,7 @@ export async function createStudent(student) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(student)
   })
-  return handleErrors(response).json()
+  return parseJson(await handleErrors(response))
 }
 
 export async function updateStudent(student) {
@@ -32,7 +42,7 @@ export async function updateStudent(student) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(student)
   })
-  return handleErrors(response).json()
+  return parseJson(await handleErrors(response))
 }
 
 export async function deleteStudent(studentNumber) {

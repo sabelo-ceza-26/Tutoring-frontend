@@ -1,46 +1,44 @@
 <template>
-        <main class="sessions-content">
+  <div class="sessions-layout">
+    <main class="sessions-content">
 
-            <section class="sessions-header">
-                <div>
-                    <p class="header-label">SESSIONS</p>
-                    <h1>Completed Sessions</h1>
-                    <p class="header-description">
-                        View tutoring that have already been completed.
-                    </p>
-                </div>
-            </section>
+      <section class="sessions-header">
+        <div>
+          <p class="header-label">SESSIONS</p>
+          <h1>Completed Sessions</h1>
+          <p class="header-description">
+            View tutoring that have already been completed.
+          </p>
+        </div>
+      </section>
 
-            <section class="session-summary">
+      <section class="session-summary">
+        <div class="summary-card">
+          <p class="summary-label">TOTAL COMPLETED</p>
+          <h2>0</h2>
+          <p>Completed sessions</p>
+        </div>
+        <div class="summary-card">
+          <p class="summary-label">ONLINE</p>
+          <h2>0</h2>
+          <p>Complete online sessions</p>
+        </div>
+        <div class="summary-card">
+          <p class="summary-label">IN PERSON</p>
+          <h2>0</h2>
+          <p>Complete in-person sessions</p>
+        </div>
+      </section>
 
-                <div class="summary-card">
-                    <p class="summary-label">TOTAL COMPLETED</p>
-                    <h2>0</h2>
-                    <p>Completed sessions</p>
-                </div>
+      <section class="sessions-card">
+        <div class="card-header">
+          <div>
+            <h2>Complete Session History</h2>
+            <p>Your previously completed sessions</p>
+          </div>
+        </div>
 
-                <div class="summary-card">
-                    <p class="summary-label">ONLINE</p>
-                    <h2>0</h2>
-                    <p>Complete online sessions</p>
-                </div>
-
-                <div class="summary-card">
-                    <p class="summary-label">IN PERSON</p>
-                    <h2>0</h2>
-                    <p>Complete in-person sessions</p>
-                </div>
-            </section>
-
-            <section class="sessions-card">
-                <div class="card-header">
-                <div>
-                <h2>Complete Session History</h2>
-                <p>Your previously completed sessions</p>
-                </div>
-                </div>
-
-                <div class="table-header">
+        <div class="table-header">
           <span>Date</span>
           <span>Student</span>
           <span>Subject</span>
@@ -51,15 +49,17 @@
         <div class="empty-state">
           <div class="empty-circle">✓</div>
           <h3>No completed sessions</h3>
-          <p> Your completed tutoring sessions will appear here.</p>
+          <p>Your completed tutoring sessions will appear here.</p>
         </div>
-            </section>
-        </main>
+      </section>
+
+    </main>
+  </div>
 </template>
 
 <script>
 export default {
-    name: "CompletedSessions",
+  name: "CompletedSessions",
 }
 </script>
 

@@ -1,12 +1,15 @@
 import { getAllStudents, getStudentById, updateStudent } from './studentService'
 import { getAllTutors, getTutorById, updateTutor } from './tutorService'
-import { getAdminById } from './adminService'
 
 const SESSION_KEY = 'tutoring_session'
 
 export function getSession() {
   const raw = localStorage.getItem(SESSION_KEY)
   return raw ? JSON.parse(raw) : null
+}
+
+export function saveSession(session) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session))
 }
 
 export function updateSession(changes) {
@@ -25,10 +28,6 @@ export function isLoggedIn() {
 
 export function logout() {
   localStorage.removeItem(SESSION_KEY)
-}
-
-function saveSession(session) {
-  localStorage.setItem(SESSION_KEY, JSON.stringify(session))
 }
 
 export async function loginStudent(email, password) {
@@ -58,21 +57,6 @@ export async function loginTutor(email, password) {
     id: tutor.tutorId,
     name: `${tutor.firstName} ${tutor.lastName}`,
     email: tutor.email
-  }
-  saveSession(session)
-  return session
-}
-
-export async function loginAdmin(adminId) {
-  const admin = await getAdminById(adminId)
-  if (!admin) {
-    throw new Error('Admin not found')
-  }
-  const session = {
-    role: 'admin',
-    id: admin.adminId,
-    name: admin.role || 'Administrator',
-    email: ''
   }
   saveSession(session)
   return session

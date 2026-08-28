@@ -1,48 +1,44 @@
 <template>
-      <div class="sessions-layout">
-        <main class="sessions-content">
+  <div class="sessions-layout">
+    <main class="sessions-content">
 
-            <section class="sessions-header">
-                <div>
-                    <p class="header-label">SESSIONS</p>
-                    <h1>Upcoming Sessions</h1>
-                    <p class="header-description">
-                        View your upcoming tutoring sessions and scheduled bookings.
-                    </p>
-                </div>
-            </section>
+      <section class="sessions-header">
+        <div>
+          <p class="header-label">SESSIONS</p>
+          <h1>Upcoming Sessions</h1>
+          <p class="header-description">
+            View your upcoming tutoring sessions and scheduled bookings.
+          </p>
+        </div>
+      </section>
 
-            <section class="session-summary">
+      <section class="session-summary">
+        <div class="summary-card">
+          <p class="summary-label">TOTAL UPCOMING</p>
+          <h2>0</h2>
+          <p>Upcoming sessions</p>
+        </div>
+        <div class="summary-card">
+          <p class="summary-label">ONLINE</p>
+          <h2>0</h2>
+          <p>Online sessions</p>
+        </div>
+        <div class="summary-card">
+          <p class="summary-label">IN PERSON</p>
+          <h2>0</h2>
+          <p>In-person sessions</p>
+        </div>
+      </section>
 
-                <div class="summary-card">
-                    <p class="summary-label">TOTAL UPCOMING</p>
-                    <h2>0</h2>
-                    <p>Upcoming sessions</p>
-                </div>
+      <section class="sessions-card">
+        <div class="card-header">
+          <div>
+            <h2>Upcoming Schedule</h2>
+            <p>Your scheduled tutoring sessions</p>
+          </div>
+        </div>
 
-                <div class="summary-card">
-                    <p class="summary-label">ONLINE</p>
-                    <h2>0</h2>
-                    <p>Online sessions</p>
-                </div>
-
-                <div class="summary-card">
-                    <p class="summary-label">IN PERSON</p>
-                    <h2>0</h2>
-                    <p>In-person sessions</p>
-                </div>
-            </section>
-
-            <section class="sessions-card">
-                <div class="card-header">
-                <div>
-                <h2>Upcoming Schedule</h2>
-                <p>Your scheduled tutoring sessions</p>
-                </div>
-            </div>
-
-
-                <div class="table-header">
+        <div class="table-header">
           <span>Date</span>
           <span>Time</span>
           <span>Student</span>
@@ -56,14 +52,15 @@
           <h3>No upcoming sessions</h3>
           <p>You don't have any upcoming tutoring sessions scheduled.</p>
         </div>
-            </section>
-        </main>
-        </div>
+      </section>
+
+    </main>
+  </div>
 </template>
 
 <script>
 export default {
-    name: "UpcomingSessions",
+  name: "UpcomingSessions",
 }
 </script>
 

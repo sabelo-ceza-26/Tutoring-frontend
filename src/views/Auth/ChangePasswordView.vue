@@ -8,7 +8,7 @@
 
     <form v-else class="card" @submit.prevent="submit">
       <input v-model="currentPassword" type="password" placeholder="Current Password" required>
-      <input v-model="newPassword" type="password" placeholder="New Password" minlength="4" required>
+      <input v-model="newPassword" type="password" placeholder="New Password" minlength="8" required>
       <input v-model="confirmPassword" type="password" placeholder="Confirm New Password" required>
 
       <p v-if="error" class="error">{{ error }}</p>
@@ -23,8 +23,7 @@
 </template>
 
 <script>
-import { getSession } from '@/services/authService'
-import { changeStudentPassword, changeTutorPassword } from '@/services/authService'
+import { getSession, changeStudentPassword, changeTutorPassword } from '@/services/authService'
 
 export default {
   name: 'ChangePasswordView',

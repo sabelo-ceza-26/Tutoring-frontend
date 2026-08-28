@@ -1,48 +1,44 @@
 <template>
-    <div class="sessions-layout">
+  <div class="sessions-layout">
+    <main class="sessions-content">
 
-        <main class="sessions-content">
+      <section class="sessions-header">
+        <div>
+          <p class="header-label">SESSIONS</p>
+          <h1>Today's Sessions</h1>
+          <p class="header-description">
+            View and manage all tutoring sessions scheduled for today.
+          </p>
+        </div>
+      </section>
 
-            <section class="sessions-header">
-                <div>
-                    <p class="header-label">SESSIONS</p>
-                    <h1>Today's Sessions</h1>
-                    <p class="header-description">
-                        View and manage all tutoring sessions scheduled for today.
-                    </p>
-                </div>
-            </section>
+      <section class="session-summary">
+        <div class="summary-card">
+          <p class="summary-label">TOTAL TODAY</p>
+          <h2>0</h2>
+          <p>Scheduled sessions</p>
+        </div>
+        <div class="summary-card">
+          <p class="summary-label">ONLINE</p>
+          <h2>0</h2>
+          <p>Online sessions</p>
+        </div>
+        <div class="summary-card">
+          <p class="summary-label">IN PERSON</p>
+          <h2>0</h2>
+          <p>In-person sessions</p>
+        </div>
+      </section>
 
-            <section class="session-summary">
+      <section class="sessions-card">
+        <div class="card-header">
+          <div>
+            <h2>Today's Schedule</h2>
+            <p>Your tutoring sessions for today</p>
+          </div>
+        </div>
 
-                <div class="summary-card">
-                    <p class="summary-label">TOTAL TODAY</p>
-                    <h2>0</h2>
-                    <p>Scheduled sessions</p>
-                </div>
-
-                <div class="summary-card">
-                    <p class="summary-label">ONLINE</p>
-                    <h2>0</h2>
-                    <p>Online sessions</p>
-                </div>
-
-                <div class="summary-card">
-                    <p class="summary-label">IN PERSON</p>
-                    <h2>0</h2>
-                    <p>In-person sessions</p>
-                </div>
-            </section>
-
-            <section class="sessions-card">
-                <div class="card-header">
-                <div>
-                <h2>Today's Schedule</h2>
-                <p>Your tutoring sessions for today</p>
-                </div>
-                </div>
-
-                <div class="table-header">
+        <div class="table-header">
           <span>Time</span>
           <span>Student</span>
           <span>Subject</span>
@@ -55,14 +51,15 @@
           <h3>No sessions scheduled</h3>
           <p>You don't have any tutoring sessions scheduled for today.</p>
         </div>
-            </section>
-        </main>
-    </div>
+      </section>
+
+    </main>
+  </div>
 </template>
 
 <script>
 export default {
-    name: "TodaysSessions",
+  name: "TodaysSessions",
 }
 </script>
 

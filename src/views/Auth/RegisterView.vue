@@ -92,10 +92,8 @@
 </template>
 
 <script>
-import { createStudent } from '@/services/studentService'
-import { createTutor } from '@/services/tutorService'
-import { getAllStudents } from '@/services/studentService'
-import { getAllTutors } from '@/services/tutorService'
+import { createStudent, getAllStudents } from '@/services/studentService'
+import { createTutor, getAllTutors } from '@/services/tutorService'
 import { loginStudent, loginTutor } from '@/services/authService'
 import BrandLogo from '@/components/BrandLogo.vue'
 
