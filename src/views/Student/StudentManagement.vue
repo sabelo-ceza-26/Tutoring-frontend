@@ -125,6 +125,7 @@
         :me="me"
         :tutors="tutors"
         :subjects="subjects"
+        :tutorSubjects="tutorSubjects"
         @refresh="loadAll"
         @notify="handleNotify"
         @change-page="changePage"
@@ -136,10 +137,21 @@
         mode="form"
         :tutors="tutors"
         :subjects="subjects"
+        :tutorSubjects="tutorSubjects"
         :selectedTutorId="selectedTutorId"
         @refresh="loadAll"
         @notify="handleNotify"
         @change-page="changePage"
+      />
+
+      <!-- payments page -->
+      <Payment
+        v-else-if="currentPage === 'payments'"
+        :me="me"
+        :tutors="tutors"
+        :subjects="subjects"
+        @refresh="loadAll"
+        @notify="handleNotify"
       />
 
     </div>
@@ -161,10 +173,11 @@ import { getAllTutors } from '@/services/tutorService'
 import { getAllSubjects } from '@/services/subjectService'
 import StudentDashboard from './StudentDashboard.vue'
 import StudentBookings from './StudentBookings.vue'
+import Payment from '../Payment/Payment.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 
 // these menu buttons open panels on the dashboard instead of their own pages
-const DASHBOARD_PANELS = ['payments', 'history', 'tutors', 'profile']
+const DASHBOARD_PANELS = ['history', 'tutors', 'profile']
 
 export default {
   name: "StudentManagement",
@@ -172,18 +185,20 @@ export default {
   components: {
     StudentDashboard,
     StudentBookings,
+    Payment,
     ConfirmDialog
   },
 
   data() {
     return {
       // which page is showing on the right and which dashboard panel is open
-      currentPage: "dashboard",
+      currentPage: "payments",
       dashboardPanel: "",
       session: getSession(),
       me: {},
       tutors: [],
       subjects: [],
+      tutorSubjects: [],
       selectedTutorId: "",
       error: "",
       success: "",
@@ -240,10 +255,11 @@ export default {
     // if the student cant be found we log out to be safe
     async loadAll() {
       try {
-        const [me, tutors, subjects] = await Promise.all([
+        const [me, tutors, subjects, tutorSubjects] = await Promise.all([
           getStudentById(this.session.id),
           getAllTutors(),
-          getAllSubjects()
+          getAllSubjects(),
+          fetch('/tutoring/tutorsubject/getAll').then(r => r.json()).catch(() => [])
         ])
 
         if (!me || !me.studentNumber) {
@@ -255,6 +271,7 @@ export default {
         this.me = me
         this.tutors = tutors
         this.subjects = subjects
+        this.tutorSubjects = tutorSubjects
       } catch (e) {
         this.error = e.message
       }
