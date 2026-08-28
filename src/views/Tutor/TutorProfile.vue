@@ -346,15 +346,17 @@ export default {
         return name
       }
 
-      return this.session ? this.session.name : "Tutor"
+      return this.session && this.session.name
+    ? this.session.name
+    : ""
     },
 
     initials() {
       const words = this.fullName.trim().split(" ").filter(Boolean)
 
       if (words.length === 0) {
-        return "TN"
-      }
+    return ""
+     }
 
       if (words.length === 1) {
         return words[0].charAt(0).toUpperCase()
