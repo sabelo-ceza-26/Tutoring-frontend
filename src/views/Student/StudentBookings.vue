@@ -27,19 +27,19 @@
 
                     <form @submit.prevent="createNewBooking">
                         <div class="grid-2">
-                            <label>Tutor
-                                <select v-model="bookingForm.tutorId" required>
-                                    <option value="" disabled>Select a tutor</option>
-                                    <option v-for="t in tutors" :key="t.tutorId" :value="t.tutorId">
-                                        {{ t.firstName }} {{ t.lastName }} &mdash; {{ fmtR(t.hourlyRate) }}/hr
-                                    </option>
-                                </select>
-                            </label>
                             <label>Subject
                                 <select v-model="bookingForm.subjectCode" required>
                                     <option value="" disabled>Select a subject</option>
                                     <option v-for="s in subjects" :key="s.subjectCode" :value="s.subjectCode">
                                         {{ s.subjectName }} ({{ s.subjectCode }})
+                                    </option>
+                                </select>
+                            </label>
+                            <label>Tutor
+                                <select v-model="bookingForm.tutorId" required>
+                                    <option value="" disabled>Select a tutor</option>
+                                    <option v-for="t in availableTutors" :key="t.tutorId" :value="t.tutorId">
+                                        {{ t.firstName }} {{ t.lastName }} &mdash; {{ fmtR(t.hourlyRate) }}/hr
                                     </option>
                                 </select>
                             </label>
@@ -168,6 +168,8 @@
 
                 </div>
 
+                <p v-if="error" class="error" style="margin: 8px 0">{{ error }}</p>
+
                 <div class="dashboard-card">
 
                     <div class="card-header">
@@ -229,31 +231,156 @@
         <!-- To pay for a booking -->
         <transition name="pop">
             <div v-if="payTarget" class="modal-backdrop" @click.self="closePay">
-                <form class="modal" @submit.prevent="confirmPay">
+                <div class="modal">
                     <div class="modal-head">
-                        <h3>Complete Payment</h3>
+                        <button type="button" class="back-btn" @click="closePay">
+                            <i class="bi bi-arrow-left"></i>
+                        </button>
+                        <h3>Payment</h3>
                         <button type="button" class="close-x" @click="closePay">&times;</button>
                     </div>
-                    <p class="muted modal-context">
-                        {{ subjectName(payTarget.subjectCode) }} with {{ tutorName(payTarget.bookingId) }}<br>
-                        {{ formatDate(payTarget.date) }}
-                    </p>
-                    <label>Amount (ZAR)
-                        <input v-model.number="paymentForm.amount" type="number" step="0.01" min="0" required>
-                    </label>
-                    <label>Payment Method
-                        <select v-model="paymentForm.paymentMethod" required>
-                            <option value="" disabled>Select method</option>
-                            <option>Card</option>
-                            <option>EFT</option>
-                            <option>Cash</option>
-                        </select>
-                    </label>
-                    <p v-if="modalError" class="error">{{ modalError }}</p>
-                    <button type="submit" class="submit-button block" :disabled="loading">
-                        {{ loading ? 'Processing...' : 'Pay Now' }}
-                    </button>
-                </form>
+
+                    <div class="modal-body-layout">
+                        <!-- Left: Booking Details + Summary -->
+                        <div class="modal-left">
+                            <div class="payment-card">
+                                <div class="section-title">Booking Details</div>
+                                <div class="booking-info">
+                                    <div class="info-row">
+                                        <span class="info-label">Booking ID</span>
+                                        <span class="info-value">{{ payTarget.bookingId }}</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Subject</span>
+                                        <span class="info-value">{{ subjectName(payTarget.subjectCode) }}</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Date</span>
+                                        <span class="info-value">{{ formatDate(payTarget.date) }}</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Duration</span>
+                                        <span class="info-value">{{ payTarget.duration }} minutes</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Tutor</span>
+                                        <span class="info-value">{{ tutorName(payTarget.bookingId) }}</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Hourly Rate</span>
+                                        <span class="info-value">R{{ tutorHourlyRate(payTarget).toFixed(2) }}</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Session</span>
+                                        <span class="session-badge">{{ formatSessionType(payTarget.sessionType) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="payment-card">
+                                <div class="section-title">Payment Summary</div>
+                                <div class="price-row">
+                                    <span class="price-label">Tutor hourly rate</span>
+                                    <span class="price-value">R{{ tutorHourlyRate(payTarget).toFixed(2) }}</span>
+                                </div>
+                                <div class="price-row">
+                                    <span class="price-label">Duration</span>
+                                    <span class="price-value">{{ (Number(payTarget.duration || 0) / 60).toFixed(2) }} hour(s)</span>
+                                </div>
+                                <div class="price-summary">
+                                    <div class="total-row">
+                                        <span class="total-label">Total</span>
+                                        <span class="total-amount">R{{ paymentForm.amount.toFixed(2) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right: Payment Method -->
+                        <div class="modal-right">
+                            <div class="payment-card">
+                                <div class="section-title">Payment Method</div>
+
+                                <div
+                                    class="payment-option"
+                                    :class="{ selected: paymentForm.paymentMethod === 'CASH' }"
+                                    @click="paymentForm.paymentMethod = 'CASH'"
+                                >
+                                    <div class="payment-option-content">
+                                        <input type="radio" value="CASH" v-model="paymentForm.paymentMethod">
+                                        <div class="payment-icon"><i class="bi bi-cash"></i></div>
+                                        <div>
+                                            <div class="payment-option-title">Pay in Person</div>
+                                            <p class="payment-option-text">Pay the tutor directly during your session.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div
+                                    class="payment-option"
+                                    :class="{ selected: paymentForm.paymentMethod === 'Card' }"
+                                    @click="paymentForm.paymentMethod = 'Card'"
+                                >
+                                    <div class="payment-option-content">
+                                        <input type="radio" value="Card" v-model="paymentForm.paymentMethod">
+                                        <div class="payment-icon"><i class="bi bi-credit-card"></i></div>
+                                        <div>
+                                            <div class="payment-option-title">Online Payment</div>
+                                            <p class="payment-option-text">Pay securely using your card.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div v-if="paymentForm.paymentMethod === 'CASH'" class="in-person-info">
+                                    <div class="info-flex">
+                                        <i class="bi bi-info-circle"></i>
+                                        <div>
+                                            <h6>Pay the tutor in person</h6>
+                                            <p>You will pay the tutor directly during your session. The payment will remain pending until the tutor confirms that payment has been received.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div v-if="paymentForm.paymentMethod === 'Card'" class="card-details">
+                                    <div class="mb-3">
+                                        <label class="form-label">Cardholder Name</label>
+                                        <input type="text" class="form-control" v-model="cardName" placeholder="Enter cardholder name">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Card Number</label>
+                                        <input type="text" class="form-control" v-model="cardNumber" placeholder="1234 5678 9012 3456">
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <label class="form-label">Expiry Date</label>
+                                            <input type="text" class="form-control" v-model="expiryDate" placeholder="MM / YY">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label">CVV</label>
+                                            <input type="password" class="form-control" v-model="cvv" placeholder="•••">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <p v-if="modalError" class="modal-error">{{ modalError }}</p>
+
+                                <button class="payment-btn" :disabled="loading" @click="confirmPay">
+                                    <span v-if="loading"><span class="spinner-border spinner-border-sm me-2"></span>Processing...</span>
+                                    <span v-else>
+                                        <i v-if="paymentForm.paymentMethod === 'Card'" class="bi bi-lock-fill me-2"></i>
+                                        <i v-else class="bi bi-check-circle me-2"></i>
+                                        {{ paymentForm.paymentMethod === 'Card' ? 'Pay ' + fmtR(paymentForm.amount) : 'Confirm Payment' }}
+                                    </span>
+                                </button>
+
+                                <div v-if="paymentForm.paymentMethod === 'Card'" class="secure-text">
+                                    <i class="bi bi-shield-check"></i>
+                                    Your payment information is secure.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </transition>
 
@@ -284,6 +411,11 @@ export default {
             default: () => []
         },
 
+        tutorSubjects: {
+            type: Array,
+            default: () => []
+        },
+
         mode: {
             type: String,
             default: "list"
@@ -303,6 +435,10 @@ export default {
             session: getSession(),
             payTarget: null,
             paymentForm: { amount: 0, paymentMethod: "" },
+            cardName: "",
+            cardNumber: "",
+            expiryDate: "",
+            cvv: "",
             bookingForm: { tutorId: '', subjectCode: '', sessionType: '', duration: '', date: '' }
         }
     },
@@ -335,6 +471,15 @@ export default {
             return (Number(tutor.hourlyRate || 0) * Number(this.bookingForm.duration)) / 60
         },
 
+        // tutors who teach the selected subject, or all tutors if none selected
+        availableTutors() {
+            if (!this.bookingForm.subjectCode) return this.tutors
+            const tutorIds = this.tutorSubjects
+                .filter(ts => ts.subjectCode === this.bookingForm.subjectCode)
+                .map(ts => ts.tutorId)
+            return this.tutors.filter(t => tutorIds.includes(t.tutorId))
+        },
+
         minDateTime() {
             const d = new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
             return d.toISOString().slice(0, 16)
@@ -349,6 +494,17 @@ export default {
                 if (value) {
                     this.bookingForm.tutorId = value
                 }
+            }
+        },
+
+        // when a subject is picked, auto-fill the tutor if one teaches it
+        'bookingForm.subjectCode'(code) {
+            if (!code) return
+            const match = this.tutorSubjects.find(ts => ts.subjectCode === code)
+            if (match) {
+                this.bookingForm.tutorId = match.tutorId
+            } else {
+                this.bookingForm.tutorId = ''
             }
         }
     },
@@ -420,10 +576,20 @@ export default {
         // opens the pay pop up and works out the amount from the tutors rate
         openPay(booking) {
             this.modalError = ""
+            this.cardName = ""
+            this.cardNumber = ""
+            this.expiryDate = ""
+            this.cvv = ""
             const tutor = this.tutors.find(t => (t.bookings || []).some(b => b.bookingId === booking.bookingId))
             const hours = Number(booking.duration || 60) / 60
             this.paymentForm.amount = tutor ? Number((Number(tutor.hourlyRate || 0) * hours).toFixed(2)) : 0
+            this.paymentForm.paymentMethod = this.isInPerson(booking.sessionType) ? "CASH" : "Card"
             this.payTarget = booking
+        },
+
+        tutorHourlyRate(booking) {
+            const tutor = this.tutors.find(t => (t.bookings || []).some(b => b.bookingId === booking.bookingId))
+            return tutor ? Number(tutor.hourlyRate || 0) : 0
         },
 
         closePay() {
@@ -448,6 +614,20 @@ export default {
         // sends the payment through to the backend
         async confirmPay() {
             this.modalError = ""
+            if (!this.paymentForm.paymentMethod) {
+                this.modalError = "Please select a payment method."
+                return
+            }
+            if (this.paymentForm.amount <= 0) {
+                this.modalError = "The payment amount could not be calculated."
+                return
+            }
+            if (this.paymentForm.paymentMethod === "Card") {
+                if (!this.cardName || !this.cardNumber || !this.expiryDate || !this.cvv) {
+                    this.modalError = "Please complete your card details."
+                    return
+                }
+            }
             this.loading = true
             try {
                 await createPayment({
@@ -455,7 +635,7 @@ export default {
                     amount: this.paymentForm.amount,
                     paymentDate: new Date().toISOString().slice(0, 19),
                     paymentMethod: this.paymentForm.paymentMethod,
-                    status: 'PAID',
+                    status: this.paymentForm.paymentMethod === 'CASH' ? 'PENDING' : 'PAID',
                     booking: { bookingId: this.payTarget.bookingId }
                 })
                 this.closePay()
@@ -466,6 +646,17 @@ export default {
             } finally {
                 this.loading = false
             }
+        },
+
+        formatSessionType(type) {
+            if (!type) return 'Not specified'
+            return this.isInPerson(type) ? 'In-person' : 'Online'
+        },
+
+        isInPerson(type) {
+            if (!type) return true
+            const t = String(type).toUpperCase().replace(/[\s-]/g, '')
+            return t === 'INPERSON'
         }
     }
 }
@@ -823,50 +1014,260 @@ select:focus {
   align-items: center;
   justify-content: center;
   z-index: 50;
-  padding: 16px;
+  padding: 20px;
 }
 
 .modal {
-  width: 440px;
-  max-width: 100%;
-  background: #fff;
-  border-radius: 14px;
-  padding: 28px 30px;
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+  width: 100%;
+  max-width: 860px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 24px;
+  box-sizing: border-box;
 }
 
 .modal-head {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 16px;
 }
 
 .modal-head h3 {
   margin: 0;
   font-size: 20px;
+  color: #062b67;
+  font-weight: 700;
+}
+
+.back-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background-color: white;
+  color: #062b67;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: auto;
 }
 
 .close-x {
   border: none;
-  background: #eef2f7;
-  color: #61748a;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  font-size: 20px;
+  background: none;
+  font-size: 22px;
   line-height: 1;
+  color: #8a94a3;
   cursor: pointer;
 }
 
 .close-x:hover {
-  background: #fbeae8;
-  color: #c0392b;
+  color: #2c3e50;
 }
 
-.modal-context {
+.modal-error {
+  margin: 12px 0;
+  color: #c0392b;
+  font-size: 12px;
+}
+
+.modal-body-layout {
+  display: flex;
+  gap: 16px;
+}
+
+.modal-left, .modal-right {
+  flex: 1;
+  min-width: 0;
+}
+
+.payment-card {
+  background-color: white;
+  border-radius: 15px;
+  padding: 22px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+}
+
+.section-title {
+  color: #062b67;
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 18px;
+}
+
+.booking-info {
+  background-color: #f1f1f1;
+  border-radius: 10px;
+  padding: 15px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.info-row:last-child { margin-bottom: 0; }
+.info-label { color: #777; }
+.info-value { font-weight: 600; text-align: right; }
+
+.session-badge {
+  background-color: #e4edff;
+  color: #062b67;
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.price-label { color: #777; }
+.price-value { font-weight: 600; }
+
+.price-summary {
+  border-top: 1px solid #ddd;
+  padding-top: 18px;
+  margin-top: 20px;
+}
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.total-label { font-size: 15px; font-weight: 700; }
+
+.total-amount {
+  color: #062b67;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.payment-option {
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.payment-option:hover { border-color: #2563eb; }
+
+.payment-option.selected {
+  border: 2px solid #2563eb;
+  background-color: #f4f7ff;
+}
+
+.payment-option-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.payment-option input { accent-color: #062b67; }
+
+.payment-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background-color: #e9efff;
+  color: #062b67;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 20px;
+}
+
+.payment-option-title { font-size: 14px; font-weight: 600; }
+.payment-option-text { font-size: 11px; color: #777; margin: 2px 0 0; }
+
+.in-person-info {
+  background-color: #f4f7ff;
+  border-radius: 10px;
+  padding: 15px;
+  margin-top: 18px;
+}
+
+.info-flex {
+  display: flex;
+  gap: 12px;
+}
+
+.in-person-info i { color: #2563eb; font-size: 22px; }
+.in-person-info h6 { color: #062b67; font-size: 14px; font-weight: 700; margin: 0 0 4px; }
+.in-person-info p { color: #666; font-size: 12px; margin: 0; line-height: 1.5; }
+
+.card-details { margin-top: 20px; }
+
+.form-label { font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+
+.form-control {
+  background-color: #f1f1f1;
+  border: none;
+  border-radius: 8px;
+  padding: 11px;
+  font-size: 13px;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.form-control:focus {
+  background-color: #f1f1f1;
+  border: 1px solid #2563eb;
+  box-shadow: none;
+  outline: none;
+}
+
+.mb-3 { margin-bottom: 12px; }
+
+.row { display: flex; gap: 12px; }
+.col-6 { flex: 1; }
+
+.payment-btn {
+  width: 100%;
+  border: none;
+  border-radius: 8px;
+  background-color: #062b67;
+  color: white;
+  padding: 13px;
+  margin-top: 18px;
   font-size: 14px;
-  margin: 10px 0 18px;
-  line-height: 1.5;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.payment-btn:hover { background-color: #041f4d; }
+.payment-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+
+.secure-text {
+  text-align: center;
+  color: #888;
+  font-size: 11px;
+  margin-top: 12px;
+}
+
+@media (max-width: 767px) {
+  .modal { max-width: 480px; }
+  .modal-body-layout { flex-direction: column; }
 }
 
 /* TRANSITIONS */
