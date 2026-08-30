@@ -192,7 +192,7 @@ export default {
   data() {
     return {
       // which page is showing on the right and which dashboard panel is open
-      currentPage: "payments",
+      currentPage: "dashboard",
       dashboardPanel: "",
       session: getSession(),
       me: {},
