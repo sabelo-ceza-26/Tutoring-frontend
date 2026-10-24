@@ -62,11 +62,23 @@
           <div class="grid-2">
             <label>
               Password
-              <input v-model="form.password" type="password" placeholder="Min. 8 characters" minlength="8">
+              <div class="password-wrapper">
+                <input v-model="form.password" :type="showPassword ? 'text' : 'password'" placeholder="Min. 8 characters" minlength="8">
+                <button type="button" class="password-toggle" @click="showPassword = !showPassword" :aria-label="showPassword ? 'Hide password' : 'Show password'">
+                  <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                </button>
+              </div>
             </label>
             <label>
               Confirm Password
-              <input v-model="confirmPassword" type="password" placeholder="Repeat password">
+              <div class="password-wrapper">
+                <input v-model="confirmPassword" :type="showConfirmPassword ? 'text' : 'password'" placeholder="Repeat password">
+                <button type="button" class="password-toggle" @click="showConfirmPassword = !showConfirmPassword" :aria-label="showConfirmPassword ? 'Hide password' : 'Show password'">
+                  <svg v-if="!showConfirmPassword" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                </button>
+              </div>
             </label>
           </div>
 
@@ -88,13 +100,22 @@
         </p>
       </footer>
     </div>
+
+    <div v-if="successModal" class="modal-overlay">
+      <div class="modal">
+        <h3>Registration Successful</h3>
+        <p>Your account has been created successfully.</p>
+        <div class="modal-actions">
+          <button type="button" class="modal-ok" @click="goToLogin">OK</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
 import { createStudent, getAllStudents } from '@/services/studentService'
 import { createTutor, getAllTutors } from '@/services/tutorService'
-import { loginStudent, loginTutor } from '@/services/authService'
 import BrandLogo from '@/components/BrandLogo.vue'
 
 function emptyForm() {
@@ -123,7 +144,10 @@ export default {
       form: emptyForm(),
       confirmPassword: '',
       error: '',
-      loading: false
+      loading: false,
+      showPassword: false,
+      showConfirmPassword: false,
+      successModal: false
     }
   },
   computed: {
@@ -152,6 +176,11 @@ export default {
       this.form = emptyForm()
       this.confirmPassword = ''
       this.error = ''
+      this.successModal = false
+    },
+    goToLogin() {
+      this.successModal = false
+      this.$router.push({ path: '/login', query: { role: this.role } })
     },
     validate() {
       if (this.form.password !== this.confirmPassword) {
@@ -180,7 +209,6 @@ export default {
         if (await this.idAlreadyUsed(this.form.id)) {
           throw new Error('An account with this ID or email already exists')
         }
-        let session
         if (this.role === 'student') {
           const student = {
             studentNumber: this.form.id,
@@ -192,7 +220,6 @@ export default {
             levelOfStudy: this.form.levelOfStudy
           }
           await createStudent(student)
-          session = await loginStudent(student.email, student.password)
         } else {
           const tutor = {
             tutorId: this.form.id,
@@ -204,9 +231,8 @@ export default {
             hourlyRate: Number(this.form.hourlyRate)
           }
           await createTutor(tutor)
-          session = await loginTutor(tutor.email, tutor.password)
         }
-        this.$router.push(`/${session.role}-home`)
+        this.successModal = true
       } catch (e) {
         this.error = e.message
       } finally {
@@ -389,6 +415,34 @@ input:focus {
   box-shadow: 0 0 0 3px rgba(66, 185, 131, 0.18);
 }
 
+.password-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-wrapper input {
+  width: 100%;
+  padding-right: 48px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7a89;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+}
+
+.password-toggle:hover {
+  color: #2f9e69;
+}
+
 /* BANNERS */
 .banner {
   margin: 0;
@@ -464,5 +518,57 @@ input:focus {
 .fade-enter,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* MODAL */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(31, 59, 83, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 1000;
+}
+
+.modal {
+  width: min(420px, 100%);
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 20px 48px rgba(31, 59, 83, 0.28);
+  overflow: hidden;
+  text-align: center;
+}
+
+.modal h3 {
+  margin: 0;
+  padding: 22px 24px 12px;
+  font-size: 20px;
+  color: #2c3e50;
+}
+
+.modal p {
+  margin: 0;
+  padding: 0 24px 18px;
+  color: #55657a;
+  font-size: 15px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding: 0 24px 24px;
+}
+
+.modal-ok {
+  padding: 12px 26px;
+  border: none;
+  border-radius: 9px;
+  background: linear-gradient(120deg, #2f9e69, #256d51);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
 }
 </style>

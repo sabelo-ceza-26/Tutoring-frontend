@@ -18,8 +18,17 @@ async function parseJson(response) {
 }
 
 export async function getAllPayments() {
-  const response = await fetch(`${BASE_URL}/getAll`)
-  return parseJson(await handleErrors(response))
+  try {
+    const response = await fetch(`${BASE_URL}/getAll`, { credentials: 'include' })
+    return parseJson(await handleErrors(response))
+  } catch (e) {
+    try {
+      const response = await fetch(`${BASE_URL}/all`)
+      return parseJson(await handleErrors(response))
+    } catch (err) {
+      throw e
+    }
+  }
 }
 
 export async function getPaymentById(paymentRef) {
