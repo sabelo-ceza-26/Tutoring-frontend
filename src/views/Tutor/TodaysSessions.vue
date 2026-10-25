@@ -18,11 +18,13 @@
           <h2>{{ todaysSessions.length }}</h2>
           <p>Scheduled sessions</p>
         </div>
+
         <div class="summary-card">
           <p class="summary-label">ONLINE</p>
-         <h2>{{ onlineToday }}</h2>
+          <h2>{{ onlineToday }}</h2>
           <p>Online sessions</p>
         </div>
+
         <div class="summary-card">
           <p class="summary-label">IN PERSON</p>
           <h2>{{ inPersonToday }}</h2>
@@ -40,32 +42,32 @@
 
         <div class="table-header">
           <span>Date / Time</span>
-          <span>Student</span>
+          <span>Student Number</span>
           <span>Subject</span>
           <span>Duration</span>
           <span>Session Type</span>
         </div>
 
         <div
-  v-for="session in todaysSessions"
-  :key="session.bookingId"
-  class="session-row"
->
-  <span>{{ session.date }}</span>
-  <span>{{ session.studentNumber }}</span>
-  <span>{{ session.subjectCode }}</span>
-  <span>{{ session.duration }}</span>
-  <span>{{ session.sessionType }}</span>
-</div>
+          v-for="session in todaysSessions"
+          :key="session.bookingId"
+          class="session-row"
+        >
+          <span>{{ formatDateTime(session.date) }}</span>
+          <span>{{ getStudentNumber(session) }}</span>
+          <span>{{ session.subjectCode }}</span>
+          <span>{{ session.duration }} min</span>
+          <span>{{ session.sessionType }}</span>
+        </div>
 
-<div
-  v-if="todaysSessions.length === 0"
-  class="empty-state"
->
-  <div class="empty-circle">—</div>
-  <h3>No sessions scheduled</h3>
-  <p>You don't have any tutoring sessions scheduled for today.</p>
-</div>
+        <div
+          v-if="todaysSessions.length === 0"
+          class="empty-state"
+        >
+          <div class="empty-circle">—</div>
+          <h3>No sessions scheduled</h3>
+          <p>You don't have any tutoring sessions scheduled for today.</p>
+        </div>
       </section>
 
     </main>
@@ -78,25 +80,115 @@ export default {
 
   data() {
     return {
-      todaysSessions: []
+      todaysSessions: [],
+      students: []
     }
   },
 
   computed: {
     onlineToday() {
-      return this.todaysSessions.filter(
-        session =>
-          session.sessionType &&
-          session.sessionType.toLowerCase() === "online"
+      return this.todaysSessions.filter(session =>
+        this.normalizeSessionType(session.sessionType) === "online"
       ).length
     },
 
     inPersonToday() {
-      return this.todaysSessions.filter(
-        session =>
-          session.sessionType &&
-          session.sessionType.toLowerCase() === "in person"
+      return this.todaysSessions.filter(session =>
+        this.normalizeSessionType(session.sessionType) === "in person"
       ).length
+    }
+  },
+
+  async mounted() {
+    await this.loadTodaysSessions()
+  },
+
+  methods: {
+    normalizeSessionType(type) {
+      return (type || "")
+        .toLowerCase()
+        .trim()
+        .replace(/[_-]/g, " ")
+    },
+
+    getStudentNumber(session) {
+      const matchingStudent = this.students.find(student =>
+        Array.isArray(student.bookings) &&
+        student.bookings.some(booking =>
+          booking.bookingId === session.bookingId
+        )
+      )
+
+      return matchingStudent
+        ? matchingStudent.studentNumber
+        : "Student not found"
+    },
+
+    async loadTodaysSessions() {
+      try {
+        const [bookingResponse, studentResponse] = await Promise.all([
+          fetch("/tutoring/booking/getAll"),
+          fetch("/tutoring/student/getAll")
+        ])
+
+        if (!bookingResponse.ok) {
+          throw new Error("Failed to load bookings")
+        }
+
+        if (!studentResponse.ok) {
+          throw new Error("Failed to load students")
+        }
+
+        const bookings = await bookingResponse.json()
+        this.students = await studentResponse.json()
+
+        const now = new Date()
+
+        const today = [
+          now.getFullYear(),
+          String(now.getMonth() + 1).padStart(2, "0"),
+          String(now.getDate()).padStart(2, "0")
+        ].join("-")
+
+        this.todaysSessions = bookings.filter(booking => {
+          if (!booking.date) {
+            return false
+          }
+
+          const bookingDate = new Date(booking.date)
+
+          if (Number.isNaN(bookingDate.getTime())) {
+            return false
+          }
+
+          const bookingDay = [
+            bookingDate.getFullYear(),
+            String(bookingDate.getMonth() + 1).padStart(2, "0"),
+            String(bookingDate.getDate()).padStart(2, "0")
+          ].join("-")
+
+          return bookingDay === today
+        })
+
+      } catch (error) {
+        console.error("Could not load today's sessions:", error)
+        this.todaysSessions = []
+        this.students = []
+      }
+    },
+
+    formatDateTime(date) {
+      if (!date) {
+        return ""
+      }
+
+      return new Date(date).toLocaleString([], {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      })
     }
   }
 }
@@ -203,19 +295,21 @@ export default {
   margin: 4px 0 0;
 }
 
-.table-header {
+.table-header,
+.session-row {
   display: grid;
-  grid-template-columns: 1fr 1.5fr 1.5fr 1fr 1fr;
-  padding: 14px 5px;
+  grid-template-columns: 1.5fr 1.2fr 1.2fr 0.8fr 1fr;
+  gap: 10px;
+}
 
+.table-header {
+  padding: 14px 5px;
   color: #8a94a3;
   font-size: 10px;
   font-weight: bold;
 }
 
 .session-row {
-  display: grid;
-  grid-template-columns: 1fr 1.5fr 1.5fr 1fr 1fr;
   padding: 15px 5px;
   border-top: 1px solid #e5e7eb;
   font-size: 13px;
@@ -224,14 +318,11 @@ export default {
 
 .empty-state {
   min-height: 220px;
-
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-
   border-top: 1px solid #e5e7eb;
-
   text-align: center;
 }
 
@@ -241,11 +332,9 @@ export default {
   background-color: #fff3e7;
   color: #f28c28;
   border-radius: 50%;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   font-weight: bold;
   margin-bottom: 10px;
 }
@@ -262,10 +351,8 @@ export default {
 }
 
 @media (max-width: 900px) {
-
   .session-summary {
     grid-template-columns: 1fr;
   }
-
 }
 </style>

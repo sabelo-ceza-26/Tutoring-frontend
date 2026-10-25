@@ -18,11 +18,13 @@
           <h2>{{ upcomingSessions.length }}</h2>
           <p>Upcoming sessions</p>
         </div>
+
         <div class="summary-card">
           <p class="summary-label">ONLINE</p>
           <h2>{{ onlineUpcoming }}</h2>
           <p>Online sessions</p>
         </div>
+
         <div class="summary-card">
           <p class="summary-label">IN PERSON</p>
           <h2>{{ inPersonUpcoming }}</h2>
@@ -41,28 +43,28 @@
         <div class="table-header">
           <span>Date</span>
           <span>Time</span>
-          <span>Student</span>
+          <span>Student Number</span>
           <span>Subject</span>
           <span>Duration</span>
           <span>Session Type</span>
         </div>
 
         <div
-  v-for="session in upcomingSessions"
-  :key="session.bookingId"
-  class="session-row"
->
-  <span>{{ formatDate(session.date) }}</span>
-  <span>{{ formatTime(session.date) }}</span>
-  <span>{{ session.studentNumber }}</span>
-  <span>{{ session.subjectCode }}</span>
-  <span>{{ session.duration }}</span>
-  <span>{{ session.sessionType }}</span>
-</div>
+          v-for="session in upcomingSessions"
+          :key="session.bookingId"
+          class="session-row"
+        >
+          <span>{{ formatDate(session.date) }}</span>
+          <span>{{ formatTime(session.date) }}</span>
+          <span>{{ getStudentNumber(session) }}</span>
+          <span>{{ session.subjectCode }}</span>
+          <span>{{ session.duration }} min</span>
+          <span>{{ session.sessionType }}</span>
+        </div>
 
         <div
-       v-if="upcomingSessions.length === 0"
-       class="empty-state"
+          v-if="upcomingSessions.length === 0"
+          class="empty-state"
         >
           <div class="empty-circle">—</div>
           <h3>No upcoming sessions</h3>
@@ -80,24 +82,21 @@ export default {
 
   data() {
     return {
-      upcomingSessions: []
+      upcomingSessions: [],
+      students: []
     }
   },
 
   computed: {
     onlineUpcoming() {
-      return this.upcomingSessions.filter(
-        session =>
-          session.sessionType &&
-          session.sessionType.toLowerCase() === "online"
+      return this.upcomingSessions.filter(session =>
+        this.normalizeSessionType(session.sessionType) === "online"
       ).length
     },
 
     inPersonUpcoming() {
-      return this.upcomingSessions.filter(
-        session =>
-          session.sessionType &&
-          session.sessionType.toLowerCase() === "in person"
+      return this.upcomingSessions.filter(session =>
+        this.normalizeSessionType(session.sessionType) === "in person"
       ).length
     }
   },
@@ -107,15 +106,45 @@ export default {
   },
 
   methods: {
+    getStudentNumber(session) {
+      const matchingStudent = this.students.find(student =>
+        Array.isArray(student.bookings) &&
+        student.bookings.some(booking =>
+          booking.bookingId === session.bookingId
+        )
+      )
+
+      if (matchingStudent) {
+        return matchingStudent.studentNumber
+      }
+
+      return "Student not found"
+    },
+
+    normalizeSessionType(type) {
+      return (type || "")
+        .toLowerCase()
+        .trim()
+        .replace(/[_-]/g, " ")
+    },
+
     async loadUpcomingSessions() {
       try {
-        const response = await fetch("/tutoring/booking/getAll")
+        const [bookingResponse, studentResponse] = await Promise.all([
+          fetch("/tutoring/booking/getAll"),
+          fetch("/tutoring/student/getAll")
+        ])
 
-        if (!response.ok) {
+        if (!bookingResponse.ok) {
           throw new Error("Failed to load bookings")
         }
 
-        const bookings = await response.json()
+        if (!studentResponse.ok) {
+          throw new Error("Failed to load students")
+        }
+
+        const bookings = await bookingResponse.json()
+        this.students = await studentResponse.json()
 
         const now = new Date()
 
@@ -127,6 +156,7 @@ export default {
       } catch (error) {
         console.error("Failed to load upcoming sessions:", error)
         this.upcomingSessions = []
+        this.students = []
       }
     },
 
@@ -251,15 +281,13 @@ export default {
   margin: 4px 0 0;
 }
 
-.table-header {
+.table-header,
+.session-row {
   display: grid;
-  grid-template-columns:
-    1fr
-    1fr
-    1.4fr
-    1.4fr
-    1fr
-    1fr;
+  grid-template-columns: 1fr 1fr 1.4fr 1.4fr 1fr 1fr;
+}
+
+.table-header {
   padding: 14px 5px;
   color: #8a94a3;
   font-size: 10px;
@@ -267,14 +295,6 @@ export default {
 }
 
 .session-row {
-  display: grid;
-  grid-template-columns:
-    1fr
-    1fr
-    1.4fr
-    1.4fr
-    1fr
-    1fr;
   padding: 15px 5px;
   border-top: 1px solid #e5e7eb;
   font-size: 13px;
@@ -316,10 +336,8 @@ export default {
 }
 
 @media (max-width: 900px) {
-
   .session-summary {
     grid-template-columns: 1fr;
   }
-
 }
 </style>
