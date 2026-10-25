@@ -177,6 +177,7 @@ export default {
   }
 }
 </script>
+
 <style scoped>
 .sessions-content {
   flex: 1;
