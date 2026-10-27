@@ -1,3 +1,5 @@
+import { getAllStudents } from '@/services/studentService'
+
 const BASE_URL = '/tutoring/tutor'
 
 function handleErrors(response) {
@@ -51,4 +53,33 @@ export async function deleteTutor(tutorId) {
   })
   handleErrors(response)
   return true
+}
+
+export async function getTutorSessions(tutorId) {
+  const [tutor, students] = await Promise.all([
+    getTutorById(tutorId),
+    getAllStudents()
+  ])
+
+  const bookings = (tutor && tutor.bookings) || []
+
+  const studentByBooking = new Map()
+  for (const s of students || []) {
+    for (const b of s.bookings || []) {
+      if (!b || !b.bookingId) continue
+      studentByBooking.set(b.bookingId, {
+        studentNumber: s.studentNumber,
+        studentName: `${s.firstName || ''} ${s.lastName || ''}`.trim() || `Student ${s.studentNumber}`
+      })
+    }
+  }
+
+  return bookings.map((b) => {
+    const student = studentByBooking.get(b.bookingId)
+    return {
+      ...b,
+      studentNumber: b.studentNumber || (student ? student.studentNumber : ''),
+      studentName: b.studentName || (student ? student.studentName : '')
+    }
+  })
 }

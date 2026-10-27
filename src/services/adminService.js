@@ -7,6 +7,66 @@ import { getAllPayments } from '@/services/paymentService'
 
 const BASE_URL = '/tutoring/admin'
 
+function personName(firstName, lastName) {
+  return `${firstName || ''} ${lastName || ''}`.trim()
+}
+
+function buildBookingPeopleIndex(students, tutors) {
+  const studentByBooking = new Map()
+  const tutorByBooking = new Map()
+
+  for (const s of students || []) {
+    for (const b of s.bookings || []) {
+      if (!b || !b.bookingId) continue
+      studentByBooking.set(b.bookingId, {
+        studentNumber: s.studentNumber,
+        studentName: personName(s.firstName, s.lastName) || `Student ${s.studentNumber}`
+      })
+    }
+  }
+
+  for (const t of tutors || []) {
+    for (const b of t.bookings || []) {
+      if (!b || !b.bookingId) continue
+      tutorByBooking.set(b.bookingId, {
+        tutorId: t.tutorId,
+        tutorName: personName(t.firstName, t.lastName) || `Tutor ${t.tutorId}`
+      })
+    }
+  }
+
+  return { studentByBooking, tutorByBooking }
+}
+
+function enrichBookings(bookings, students, tutors) {
+  const { studentByBooking, tutorByBooking } = buildBookingPeopleIndex(students, tutors)
+
+  return (bookings || []).map((b) => {
+    const student = studentByBooking.get(b.bookingId)
+    const tutor = tutorByBooking.get(b.bookingId)
+
+    return {
+      ...b,
+      studentNumber:
+        b.studentNumber ||
+        (b.student && b.student.studentNumber) ||
+        (student ? student.studentNumber : ''),
+      studentName:
+        b.studentName ||
+        (b.student ? personName(b.student.firstName, b.student.lastName) : '') ||
+        (student ? student.studentName : ''),
+      tutorId:
+        b.tutorId ||
+        (b.tutor && b.tutor.tutorId) ||
+        (tutor ? tutor.tutorId : ''),
+      tutorName:
+        b.tutorName ||
+        (b.tutor ? personName(b.tutor.firstName, b.tutor.lastName) : '') ||
+        (tutor ? tutor.tutorName : '')
+    }
+  })
+}
+
 function handleErrors(response) {
   if (!response.ok) {
     throw new Error(`Admin request failed: ${response.status} ${response.statusText}`)
@@ -49,7 +109,7 @@ export async function getDashboard() {
   const tutors = allTutors || []
   const students = allStudents || []
   const subjectList = subjects || []
-  const bookingList = bookings || []
+  const bookingList = enrichBookings(bookings, students, tutors)
   const paymentList = payments || []
 
   const stats = {
@@ -99,12 +159,12 @@ export async function getDashboard() {
     })
   }
   for (const b of bookingList) {
-    if (b.student && b.student.studentNumber && studentMap.has(b.student.studentNumber)) {
-      studentMap.get(b.student.studentNumber).bookings.push({
+    if (b.studentNumber && studentMap.has(b.studentNumber)) {
+      studentMap.get(b.studentNumber).bookings.push({
         bookingId: b.bookingId,
         subjectName: b.subjectName || '',
         subjectCode: b.subjectCode || '',
-        tutorName: b.tutor ? `${b.tutor.firstName || ''} ${b.tutor.lastName || ''}`.trim() : '',
+        tutorName: b.tutorName || '',
         sessionType: b.sessionType || '',
         duration: b.duration || '',
         date: b.date || '',
@@ -116,9 +176,19 @@ export async function getDashboard() {
 
   return {
     stats,
+    bookings: bookingList,
     tutorSubjectSummaries: Array.from(tutorSubjectMap.values()),
     studentBookingSummaries: Array.from(studentMap.values())
   }
+}
+
+export async function getBookingsWithPeople() {
+  const [bookings, students, tutors] = await Promise.all([
+    getAllBookings(),
+    getAllStudents(),
+    getAllTutors()
+  ])
+  return enrichBookings(bookings, students, tutors)
 }
 
 export async function getAllAdmins() {

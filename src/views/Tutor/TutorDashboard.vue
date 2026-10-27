@@ -94,7 +94,7 @@
 
 <script>
 import { getSession } from '@/services/authService'
-import { getTutorById } from '@/services/tutorService'
+import { getTutorById, getTutorSessions } from '@/services/tutorService'
 
 export default {
   name: 'TutorDashboard',
@@ -168,13 +168,11 @@ export default {
 
     async loadDashboardBookings() {
       try {
-        const response = await fetch('/tutoring/booking/getAll')
-
-        if (!response.ok) {
-          throw new Error('Failed to load bookings')
+        if (!this.session || !this.session.id) {
+          return
         }
 
-        const bookings = await response.json()
+        const bookings = await getTutorSessions(this.session.id)
         const now = new Date()
 
         const today = [
@@ -222,8 +220,7 @@ export default {
 
           return (
             !Number.isNaN(bookingDate.getTime()) &&
-            bookingDate < now &&
-            bookingDate.toDateString() !== now.toDateString()
+            bookingDate < now
           )
         })
 

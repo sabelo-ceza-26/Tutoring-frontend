@@ -21,12 +21,12 @@
         <div class="summary-card">
           <p class="summary-label">ONLINE</p>
           <h2>{{ onlineCompleted }}</h2>
-          <p>Completed online sessions</p>
+          <p>Online sessions</p>
         </div>
         <div class="summary-card">
           <p class="summary-label">IN PERSON</p>
           <h2>{{ inPersonCompleted }}</h2>
-          <p>Completed in-person sessions</p>
+          <p>In-person sessions</p>
         </div>
       </section>
 
@@ -51,15 +51,17 @@
   :key="session.bookingId"
   class="session-row"
 >
-  <span>{{ session.date }}</span>
-  <span>{{ session.studentNumber }}</span>
+  <span>{{ formatDate(session.date) }}</span>
+  <span>{{ session.studentName || session.studentNumber || '—' }}</span>
   <span>{{ session.subjectCode }}</span>
   <span>{{ session.duration }}</span>
   <span>{{ session.sessionType }}</span>
 </div>
 
-<div
-  v-if="completedSessions.length === 0"
+        <p v-if="error" class="error">{{ error }}</p>
+
+        <div
+  v-if="!loading && completedSessions.length === 0"
   class="empty-state"
 >
   <div class="empty-circle">✓</div>
@@ -73,30 +75,95 @@
 </template>
 
 <script>
+import { getSession } from '@/services/authService'
+import { getTutorSessions } from '@/services/tutorService'
+
 export default {
   name: "CompletedSessions",
 
   data() {
     return {
-      completedSessions: []
+      completedSessions: [],
+      loading: false,
+      error: ""
     }
   },
 
   computed: {
     onlineCompleted() {
       return this.completedSessions.filter(
-        session =>
-          session.sessionType &&
-          session.sessionType.toLowerCase() === "online"
+        session => this.normalizeSessionType(session.sessionType) === "online"
       ).length
     },
 
     inPersonCompleted() {
       return this.completedSessions.filter(
-        session =>
-          session.sessionType &&
-          session.sessionType.toLowerCase() === "in person"
+        session => this.normalizeSessionType(session.sessionType) === "in person"
       ).length
+    }
+  },
+
+  async created() {
+    await this.loadCompletedSessions()
+  },
+
+  methods: {
+    normalizeSessionType(type) {
+      return (type || "")
+        .toLowerCase()
+        .trim()
+        .replace(/[_-]/g, " ")
+    },
+
+    formatDate(value) {
+      if (!value) return "—"
+
+      const date = new Date(value)
+
+      if (Number.isNaN(date.getTime())) {
+        return String(value)
+      }
+
+      return date.toLocaleString("en-ZA", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      })
+    },
+
+    async loadCompletedSessions() {
+      const session = getSession()
+
+      if (!session || !session.id) {
+        return
+      }
+
+      this.loading = true
+      this.error = ""
+
+      try {
+        const bookings = await getTutorSessions(session.id)
+        const now = new Date()
+
+        this.completedSessions = bookings
+          .filter(booking => {
+            if (!booking.date) return false
+
+            const bookingDate = new Date(booking.date)
+
+            return (
+              !Number.isNaN(bookingDate.getTime()) &&
+              bookingDate < now
+            )
+          })
+          .sort((a, b) => new Date(b.date) - new Date(a.date))
+      } catch (e) {
+        this.error = e.message || "Could not load completed sessions"
+      } finally {
+        this.loading = false
+      }
     }
   }
 }
@@ -250,6 +317,12 @@ export default {
   margin: 0;
   color: #8a94a3;
   font-size: 12px;
+}
+
+.error {
+  margin: 12px 0 0;
+  color: #c0392b;
+  font-size: 13px;
 }
 
 
