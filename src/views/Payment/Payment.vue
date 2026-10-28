@@ -125,10 +125,10 @@
           </div>
 
           <div class="modal-body-layout">
-            <!-- Left: Booking Details + Summary -->
+            <!-- Left: Payment Summary -->
             <div class="modal-left">
               <div class="payment-card">
-                <div class="section-title">Booking Details</div>
+                <div class="section-title">Payment Summary</div>
                 <div class="booking-info">
                   <div class="info-row">
                     <span class="info-label">Booking ID</span>
@@ -143,26 +143,10 @@
                     <span class="info-value">{{ formatDate(payTarget.date) }}</span>
                   </div>
                   <div class="info-row">
-                    <span class="info-label">Duration</span>
-                    <span class="info-value">{{ payTarget.duration }} minutes</span>
-                  </div>
-                  <div class="info-row">
-                    <span class="info-label">Tutor</span>
-                    <span class="info-value">{{ tutorName(payTarget.bookingId) }}</span>
-                  </div>
-                  <div class="info-row">
-                    <span class="info-label">Hourly Rate</span>
-                    <span class="info-value">R{{ tutorHourlyRate(payTarget).toFixed(2) }}</span>
-                  </div>
-                  <div class="info-row">
                     <span class="info-label">Session</span>
                     <span class="session-badge">{{ formatSessionType(payTarget.sessionType) }}</span>
                   </div>
                 </div>
-              </div>
-
-              <div class="payment-card">
-                <div class="section-title">Payment Summary</div>
                 <div class="price-row">
                   <span class="price-label">Tutor hourly rate</span>
                   <span class="price-value">R{{ tutorHourlyRate(payTarget).toFixed(2) }}</span>
@@ -180,52 +164,21 @@
               </div>
             </div>
 
-            <!-- Right: Payment Method -->
+            <!-- Right: Online Payment -->
             <div class="modal-right">
               <div class="payment-card">
-                <div class="section-title">Payment Method</div>
-
-                <div
-                  class="payment-option"
-                  :class="{ selected: paymentForm.paymentMethod === 'CASH' }"
-                  @click="paymentForm.paymentMethod = 'CASH'"
-                >
+                <div class="section-title">Online Payment</div>
+                <div class="payment-option selected">
                   <div class="payment-option-content">
-                    <input type="radio" value="CASH" v-model="paymentForm.paymentMethod">
-                    <div class="payment-icon"><i class="bi bi-cash"></i></div>
-                    <div>
-                      <div class="payment-option-title">Pay in Person</div>
-                      <p class="payment-option-text">Pay the tutor directly during your session.</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div
-                  class="payment-option"
-                  :class="{ selected: paymentForm.paymentMethod === 'Card' }"
-                  @click="paymentForm.paymentMethod = 'Card'"
-                >
-                  <div class="payment-option-content">
-                    <input type="radio" value="Card" v-model="paymentForm.paymentMethod">
                     <div class="payment-icon"><i class="bi bi-credit-card"></i></div>
                     <div>
-                      <div class="payment-option-title">Online Payment</div>
-                      <p class="payment-option-text">Pay securely using your card.</p>
+                      <div class="payment-option-title">Pay by Card</div>
+                      <p class="payment-option-text">Enter your card details to continue.</p>
                     </div>
                   </div>
                 </div>
 
-                <div v-if="paymentForm.paymentMethod === 'CASH'" class="in-person-info">
-                  <div class="info-flex">
-                    <i class="bi bi-info-circle"></i>
-                    <div>
-                      <h6>Pay the tutor in person</h6>
-                      <p>You will pay the tutor directly during your session. The payment will remain pending until the tutor confirms that payment has been received.</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div v-if="paymentForm.paymentMethod === 'Card'" class="card-details">
+                <div class="card-details">
                   <div class="mb-3">
                     <label class="form-label">Cardholder Name</label>
                     <input type="text" class="form-control" v-model="cardName" placeholder="Enter cardholder name">
@@ -251,15 +204,14 @@
                 <button class="payment-btn" :disabled="paying || !paymentForm.paymentMethod" @click="confirmPay">
                   <span v-if="paying"><span class="spinner-border spinner-border-sm me-2"></span>Processing...</span>
                   <span v-else>
-                    <i v-if="paymentForm.paymentMethod === 'Card'" class="bi bi-lock-fill me-2"></i>
-                    <i v-else class="bi bi-check-circle me-2"></i>
-                    {{ paymentForm.paymentMethod === 'Card' ? 'Pay ' + fmtR(paymentForm.amount) : 'Confirm Payment' }}
+                    <i class="bi bi-credit-card me-2"></i>
+                    {{ 'Pay ' + fmtR(paymentForm.amount) }}
                   </span>
                 </button>
 
-                <div v-if="paymentForm.paymentMethod === 'Card'" class="secure-text">
-                  <i class="bi bi-shield-check"></i>
-                  Your payment information is secure.
+                <div class="secure-text">
+                  <i class="bi bi-info-circle"></i>
+                  Online payment option
                 </div>
               </div>
             </div>
@@ -368,7 +320,7 @@ export default {
       this.expiryDate = ''
       this.cvv = ''
       this.paymentForm.amount = this.amountDue(booking)
-      this.paymentForm.paymentMethod = this.isInPerson(booking.sessionType) ? 'CASH' : 'Card'
+      this.paymentForm.paymentMethod = 'Card'
       this.payTarget = booking
     },
 
@@ -379,10 +331,6 @@ export default {
 
     async confirmPay() {
       this.modalError = ''
-      if (!this.paymentForm.paymentMethod) {
-        this.modalError = 'Please select a payment method.'
-        return
-      }
       if (this.paymentForm.amount <= 0) {
         this.modalError = 'The payment amount could not be calculated.'
         return
@@ -401,7 +349,7 @@ export default {
           amount: this.paymentForm.amount,
           paymentDate: new Date().toISOString().slice(0, 19),
           paymentMethod: this.paymentForm.paymentMethod,
-          status: this.paymentForm.paymentMethod === 'CASH' ? 'PENDING' : 'PAID',
+          status: 'PAID',
           booking: { bookingId: this.payTarget.bookingId }
         })
         this.closePay()
@@ -682,7 +630,7 @@ export default {
   margin-bottom: 16px;
 }
 
-.modal-head h3 { margin: 0; font-size: 20px; color: #062b67; font-weight: 700; }
+.modal-head h3 { margin: 0; font-size: 20px; color: #2c3e50; font-weight: 700; }
 
 .back-btn {
   width: 40px;
@@ -690,7 +638,7 @@ export default {
   border: none;
   border-radius: 50%;
   background-color: white;
-  color: #062b67;
+  color: #2c3e50;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   cursor: pointer;
   display: flex;
@@ -729,16 +677,17 @@ export default {
 }
 
 .section-title {
-  color: #062b67;
+  color: #2c3e50;
   font-size: 16px;
   font-weight: 700;
   margin-bottom: 18px;
 }
 
 .booking-info {
-  background-color: #f1f1f1;
+  background-color: #fff7ef;
   border-radius: 10px;
   padding: 15px;
+  margin-bottom: 20px;
 }
 
 .info-row {
@@ -755,8 +704,8 @@ export default {
 .info-value { font-weight: 600; text-align: right; }
 
 .session-badge {
-  background-color: #e4edff;
-  color: #062b67;
+  background-color: #fff3e7;
+  color: #2c3e50;
   border-radius: 20px;
   padding: 5px 12px;
   font-size: 11px;
@@ -788,7 +737,7 @@ export default {
 .total-label { font-size: 15px; font-weight: 700; }
 
 .total-amount {
-  color: #062b67;
+  color: #2c3e50;
   font-size: 22px;
   font-weight: 700;
 }
@@ -802,11 +751,11 @@ export default {
   transition: 0.2s;
 }
 
-.payment-option:hover { border-color: #2563eb; }
+.payment-option:hover { border-color: #f28c28; }
 
 .payment-option.selected {
-  border: 2px solid #2563eb;
-  background-color: #f4f7ff;
+  border: 2px solid #f28c28;
+  background-color: #fff7ef;
 }
 
 .payment-option-content {
@@ -815,14 +764,14 @@ export default {
   gap: 12px;
 }
 
-.payment-option input { accent-color: #062b67; }
+.payment-option input { accent-color: #2c3e50; }
 
 .payment-icon {
   width: 40px;
   height: 40px;
   border-radius: 8px;
-  background-color: #e9efff;
-  color: #062b67;
+  background-color: #fff3e7;
+  color: #2c3e50;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -831,22 +780,6 @@ export default {
 
 .payment-option-title { font-size: 14px; font-weight: 600; }
 .payment-option-text { font-size: 11px; color: #777; margin: 2px 0 0; }
-
-.in-person-info {
-  background-color: #f4f7ff;
-  border-radius: 10px;
-  padding: 15px;
-  margin-top: 18px;
-}
-
-.info-flex {
-  display: flex;
-  gap: 12px;
-}
-
-.in-person-info i { color: #2563eb; font-size: 22px; }
-.in-person-info h6 { color: #062b67; font-size: 14px; font-weight: 700; margin: 0 0 4px; }
-.in-person-info p { color: #666; font-size: 12px; margin: 0; line-height: 1.5; }
 
 .card-details { margin-top: 20px; }
 
@@ -862,7 +795,7 @@ export default {
 
 .form-control:focus {
   background-color: #f1f1f1;
-  border: 1px solid #2563eb;
+  border: 1px solid #f28c28;
   box-shadow: none;
 }
 
@@ -881,7 +814,7 @@ export default {
   width: 100%;
   border: none;
   border-radius: 8px;
-  background-color: #062b67;
+  background-color: #2c3e50;
   color: white;
   padding: 13px;
   margin-top: 18px;
@@ -890,7 +823,7 @@ export default {
   cursor: pointer;
 }
 
-.payment-btn:hover { background-color: #041f4d; }
+.payment-btn:hover { background-color: #1f2d3a; }
 .payment-btn:disabled { opacity: 0.7; cursor: not-allowed; }
 
 .secure-text {
