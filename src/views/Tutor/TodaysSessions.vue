@@ -1,7 +1,7 @@
+
 <template>
   <div class="sessions-layout">
     <main class="sessions-content">
-
       <section class="sessions-header">
         <div>
           <p class="header-label">SESSIONS</p>
@@ -60,21 +60,23 @@
           <span>{{ session.sessionType }}</span>
         </div>
 
-        <div
-          v-if="todaysSessions.length === 0"
-          class="empty-state"
-        >
+        <div v-if="todaysSessions.length === 0" class="empty-state">
           <div class="empty-circle">—</div>
           <h3>No sessions scheduled</h3>
           <p>You don't have any tutoring sessions scheduled for today.</p>
         </div>
       </section>
-
     </main>
   </div>
 </template>
 
 <script>
+import { getSession } from "@/services/authService";
+import { getTutorById } from "@/services/tutorService";
+
+const CANCELLED_STORAGE_KEY = "tutorCancelledSessions";
+const DELETED_STORAGE_KEY = "tutorDeletedBookingIds";
+
 export default {
   name: "TodaysSessions",
 
@@ -82,23 +84,156 @@ export default {
     return {
       todaysSessions: [],
       students: []
-    }
+    };
   },
 
   computed: {
     onlineToday() {
-      return this.todaysSessions.filter(session =>
-        this.normalizeSessionType(session.sessionType) === "online"
-      ).length
+      return this.todaysSessions.filter(
+        session => this.normalizeSessionType(session.sessionType) === "online"
+      ).length;
     },
 
     inPersonToday() {
-      return this.todaysSessions.filter(session =>
-        this.normalizeSessionType(session.sessionType) === "in person"
-      ).length
+      return this.todaysSessions.filter(
+        session => this.normalizeSessionType(session.sessionType) === "in person"
+      ).length;
+    }
+  },
+
+  async mounted() {
+    await this.loadTodaysSessions();
+
+    window.addEventListener(
+      "tutor-cancellations-updated",
+      this.loadTodaysSessions
+    );
+  },
+
+  beforeUnmount() {
+    window.removeEventListener(
+      "tutor-cancellations-updated",
+      this.loadTodaysSessions
+    );
+  },
+
+  methods: {
+    normalizeSessionType(type) {
+      return (type || "")
+        .toLowerCase()
+        .trim()
+        .replace(/[_-]/g, " ");
+    },
+
+    getStoredArray(key) {
+      try {
+        const saved = JSON.parse(localStorage.getItem(key) || "[]");
+        return Array.isArray(saved) ? saved : [];
+      } catch (error) {
+        console.error(`Failed to read ${key}:`, error);
+        return [];
+      }
+    },
+
+    getStudentNumber(session) {
+      const matchingStudent = this.students.find(student =>
+        Array.isArray(student.bookings) &&
+        student.bookings.some(
+          booking =>
+            String(booking.bookingId) === String(session.bookingId)
+        )
+      );
+
+      return matchingStudent
+        ? matchingStudent.studentNumber
+        : session.studentNumber || "Student not found";
+    },
+
+    async loadTodaysSessions() {
+      try {
+        const session = getSession();
+
+        if (!session || session.role !== "tutor" || !session.id) {
+          this.todaysSessions = [];
+          this.students = [];
+          return;
+        }
+
+        const [tutor, studentResponse] = await Promise.all([
+          getTutorById(session.id),
+          fetch("/tutoring/student/getAll")
+        ]);
+
+        if (!studentResponse.ok) {
+          throw new Error("Failed to load students");
+        }
+
+        this.students = await studentResponse.json();
+
+        if (!tutor || !Array.isArray(tutor.bookings)) {
+          throw new Error("The tutor's bookings were not returned");
+        }
+
+        const cancelledSessions = this.getStoredArray(
+          CANCELLED_STORAGE_KEY
+        );
+
+        const deletedIds = this.getStoredArray(
+          DELETED_STORAGE_KEY
+        ).map(id => String(id));
+
+        const excludedIds = new Set([
+          ...cancelledSessions.map(booking =>
+            String(booking.bookingId)
+          ),
+          ...deletedIds
+        ]);
+
+        const now = new Date();
+
+        this.todaysSessions = tutor.bookings.filter(booking => {
+          if (
+            excludedIds.has(String(booking.bookingId)) ||
+            !booking.payment ||
+            String(booking.payment.status).trim().toUpperCase() !== "PAID" ||
+            !booking.date
+          ) {
+            return false;
+          }
+
+          const date = new Date(booking.date);
+
+          return (
+            !Number.isNaN(date.getTime()) &&
+            date.getFullYear() === now.getFullYear() &&
+            date.getMonth() === now.getMonth() &&
+            date.getDate() === now.getDate()
+          );
+        });
+      } catch (error) {
+        console.error("Failed to load today's sessions:", error);
+        this.todaysSessions = [];
+        this.students = [];
+      }
+    },
+
+    formatDateTime(date) {
+      if (!date) return "";
+
+      const parsedDate = new Date(date);
+
+      if (Number.isNaN(parsedDate.getTime())) return "";
+
+      return parsedDate.toLocaleString([], {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
     }
   }
-}
+};
 </script>
 
 <style scoped>
@@ -113,6 +248,7 @@ export default {
 
 .sessions-content {
   flex: 1;
+  min-width: 0;
   padding: 30px;
   box-sizing: border-box;
 }
@@ -184,6 +320,7 @@ export default {
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   padding: 22px;
+  overflow-x: auto;
 }
 
 .card-header {
@@ -207,6 +344,7 @@ export default {
   display: grid;
   grid-template-columns: 1.5fr 1.2fr 1.2fr 0.8fr 1fr;
   gap: 10px;
+  min-width: 650px;
 }
 
 .table-header {

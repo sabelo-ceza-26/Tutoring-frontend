@@ -1,7 +1,6 @@
 <template>
   <div class="dashboard-layout">
     <main class="dashboard-content">
-
       <section class="dashboard-header">
         <h1>Welcome back, {{ fullName }}</h1>
         <p class="header-description">
@@ -10,37 +9,25 @@
       </section>
 
       <section class="summary-cards">
-        <div
-          class="summary-card clickable-card"
-          @click="changePage('today')"
-        >
+        <div class="summary-card clickable-card" @click="changePage('today')">
           <span class="summary-label">TODAY</span>
           <h2>{{ todaysSessions.length }}</h2>
           <p>Today's Sessions</p>
         </div>
 
-        <div
-          class="summary-card clickable-card"
-          @click="changePage('upcoming')"
-        >
+        <div class="summary-card clickable-card" @click="changePage('upcoming')">
           <span class="summary-label">UPCOMING</span>
           <h2>{{ upcomingSessions.length }}</h2>
           <p>Upcoming Sessions</p>
         </div>
 
-        <div
-          class="summary-card clickable-card"
-          @click="changePage('completed')"
-        >
+        <div class="summary-card clickable-card" @click="changePage('completed')">
           <span class="summary-label">COMPLETED</span>
           <h2>{{ completedSessions.length }}</h2>
           <p>Completed Sessions</p>
         </div>
 
-        <div
-          class="summary-card clickable-card"
-          @click="changePage('cancelled')"
-        >
+        <div class="summary-card clickable-card" @click="changePage('cancelled')">
           <span class="summary-label">CANCELLED</span>
           <h2>{{ cancelledSessions.length }}</h2>
           <p>Cancelled Sessions</p>
@@ -54,10 +41,7 @@
             <p>Your tutoring schedule for today</p>
           </div>
 
-          <button
-            class="text-button"
-            @click="changePage('today')"
-          >
+          <button class="text-button" @click="changePage('today')">
             View All
           </button>
         </div>
@@ -65,9 +49,7 @@
         <div v-if="todaysSessions.length === 0" class="empty-state">
           <div class="empty-circle">—</div>
           <h3>No sessions scheduled</h3>
-          <p>
-            You don't have any tutoring sessions scheduled for today.
-          </p>
+          <p>You don't have any tutoring sessions scheduled for today.</p>
         </div>
 
         <div v-else class="session-list">
@@ -87,7 +69,6 @@
           </div>
         </div>
       </section>
-
     </main>
   </div>
 </template>
@@ -96,20 +77,21 @@
 import { getSession } from '@/services/authService'
 import { getTutorById, getTutorSessions } from '@/services/tutorService'
 
+const CANCELLED_STORAGE_KEY = 'tutorCancelledSessions'
+const DELETED_STORAGE_KEY = 'tutorDeletedBookingIds'
+
 export default {
   name: 'TutorDashboard',
 
   data() {
     return {
       session: null,
-
       tutor: {
         tutorId: '',
         firstName: '',
         lastName: '',
         email: ''
       },
-
       todaysSessions: [],
       upcomingSessions: [],
       completedSessions: [],
@@ -122,9 +104,7 @@ export default {
       const name =
         `${this.tutor.firstName} ${this.tutor.lastName}`.trim()
 
-      if (name) {
-        return name
-      }
+      if (name) return name
 
       return this.session && this.session.name
         ? this.session.name
@@ -135,30 +115,42 @@ export default {
   async created() {
     const session = getSession()
 
-    if (!session) {
+    if (!session || session.role !== 'tutor' || !session.id) {
       return
     }
 
     this.session = session
 
-    if (session.id) {
-      try {
-        const tutor = await getTutorById(session.id)
+    try {
+      const tutor = await getTutorById(session.id)
 
-        if (tutor && Object.keys(tutor).length) {
-          this.tutor = {
-            tutorId: tutor.tutorId || '',
-            firstName: tutor.firstName || '',
-            lastName: tutor.lastName || '',
-            email: tutor.email || ''
-          }
+      if (tutor && Object.keys(tutor).length) {
+        this.tutor = {
+          tutorId: tutor.tutorId || '',
+          firstName: tutor.firstName || '',
+          lastName: tutor.lastName || '',
+          email: tutor.email || ''
         }
-      } catch (error) {
-        console.error('Could not load tutor details:', error)
       }
+    } catch (error) {
+      console.error('Could not load tutor details:', error)
     }
 
     await this.loadDashboardBookings()
+  },
+
+  mounted() {
+    window.addEventListener(
+      'tutor-cancellations-updated',
+      this.loadDashboardBookings
+    )
+  },
+
+  beforeUnmount() {
+    window.removeEventListener(
+      'tutor-cancellations-updated',
+      this.loadDashboardBookings
+    )
   },
 
   methods: {
@@ -166,77 +158,94 @@ export default {
       this.$emit('change-page', page)
     },
 
+    getStoredSessions() {
+      try {
+        const saved = JSON.parse(
+          localStorage.getItem(CANCELLED_STORAGE_KEY) || '[]'
+        )
+
+        return Array.isArray(saved) ? saved : []
+      } catch {
+        return []
+      }
+    },
+
+    getStoredIds(key) {
+      try {
+        const saved = JSON.parse(localStorage.getItem(key) || '[]')
+        return Array.isArray(saved) ? saved.map(String) : []
+      } catch {
+        return []
+      }
+    },
+
     async loadDashboardBookings() {
       try {
-        if (!this.session || !this.session.id) {
-          return
-        }
+        if (!this.session || !this.session.id) return
+
+        this.cancelledSessions = this.getStoredSessions()
 
         const bookings = await getTutorSessions(this.session.id)
+        const allBookings = Array.isArray(bookings) ? bookings : []
+
+        const excludedIds = new Set([
+          ...this.cancelledSessions.map(
+            booking => String(booking.bookingId)
+          ),
+          ...this.getStoredIds(DELETED_STORAGE_KEY)
+        ])
+
+        const activeBookings = allBookings.filter(booking =>
+          !excludedIds.has(String(booking.bookingId)) &&
+          booking.payment &&
+          String(booking.payment.status).trim().toUpperCase() === 'PAID'
+        )
+
         const now = new Date()
 
-        const today = [
-          now.getFullYear(),
-          String(now.getMonth() + 1).padStart(2, '0'),
-          String(now.getDate()).padStart(2, '0')
-        ].join('-')
-
-        this.todaysSessions = bookings.filter(booking => {
-          if (!booking.date) {
-            return false
-          }
-
-          const bookingDate = new Date(booking.date)
-
-          if (Number.isNaN(bookingDate.getTime())) {
-            return false
-          }
-
-          const bookingDay = [
-            bookingDate.getFullYear(),
-            String(bookingDate.getMonth() + 1).padStart(2, '0'),
-            String(bookingDate.getDate()).padStart(2, '0')
-          ].join('-')
-
-          return bookingDay === today
-        })
-
-        this.upcomingSessions = bookings.filter(booking => {
+        this.todaysSessions = activeBookings.filter(booking => {
           if (!booking.date) return false
 
-          const bookingDate = new Date(booking.date)
+          const date = new Date(booking.date)
 
           return (
-            !Number.isNaN(bookingDate.getTime()) &&
-            bookingDate > now &&
-            bookingDate.toDateString() !== now.toDateString()
+            !Number.isNaN(date.getTime()) &&
+            date.toDateString() === now.toDateString()
           )
         })
 
-        this.completedSessions = bookings.filter(booking => {
+        this.upcomingSessions = activeBookings.filter(booking => {
           if (!booking.date) return false
 
-          const bookingDate = new Date(booking.date)
+          const date = new Date(booking.date)
 
-          return (
-            !Number.isNaN(bookingDate.getTime()) &&
-            bookingDate < now
-          )
+          return !Number.isNaN(date.getTime()) && date > now
         })
 
-        this.cancelledSessions = []
+        this.completedSessions = allBookings.filter(booking => {
+  if (!booking.date) return false
 
+  const date = new Date(booking.date)
+
+  return !Number.isNaN(date.getTime()) && date < now
+})
       } catch (error) {
         console.error('Could not load dashboard bookings:', error)
+        this.todaysSessions = []
+        this.upcomingSessions = []
+        this.completedSessions = []
+        this.cancelledSessions = this.getStoredSessions()
       }
     },
 
     formatTime(date) {
-      if (!date) {
-        return ''
-      }
+      if (!date) return ''
 
-      return new Date(date).toLocaleTimeString([], {
+      const parsedDate = new Date(date)
+
+      if (Number.isNaN(parsedDate.getTime())) return ''
+
+      return parsedDate.toLocaleTimeString([], {
         hour: '2-digit',
         minute: '2-digit'
       })
