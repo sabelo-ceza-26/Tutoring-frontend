@@ -61,8 +61,16 @@
                             </label>
                         </div>
                         <label>Date &amp; Time
-                            <input v-model="bookingForm.date" type="datetime-local" :min="minDateTime" required>
+                        <input v-model="bookingForm.date"
+                        type="datetime-local"
+                        :min="minDateTime"
+                        required
+                        >
                         </label>
+
+                         <p v-if="availabilityMessage" class="availability-message">
+                           {{ availabilityMessage }}
+                         </p>
                         <div v-if="estimatedCost !== null" class="cost-estimate">
                             Estimated cost <strong>{{ fmtR(estimatedCost) }}</strong>
                         </div>
@@ -432,6 +440,7 @@ export default {
             loading: false,
             error: "",
             modalError: "",
+            availabilityMessage: "",
             session: getSession(),
             payTarget: null,
             paymentForm: { amount: 0, paymentMethod: "" },
@@ -506,6 +515,15 @@ export default {
             } else {
                 this.bookingForm.tutorId = ''
             }
+        },
+        'bookingForm.tutorId'() {
+            this.availabilityMessage = ''
+        },
+        'bookingForm.date'() {
+            this.availabilityMessage = ''
+        },
+        'bookingForm.duration'() {
+            this.availabilityMessage = ''
         }
     },
 
@@ -543,8 +561,76 @@ export default {
             })
         },
 
+        getTutorAvailability(tutorId) {
+    if (!tutorId) return [];
+
+    try {
+        return JSON.parse(
+            localStorage.getItem(`tutorAvailability_${tutorId}`) || "[]"
+        );
+    } catch {
+        return [];
+    }
+},
+
+checkTutorAvailability() {
+    this.availabilityMessage = "";
+
+    const { tutorId, date, duration } = this.bookingForm;
+
+    if (!tutorId || !date || !duration) {
+        this.availabilityMessage = "Please select a tutor, date and duration.";
+        return false;
+    }
+
+    const selectedDate = new Date(date);
+
+    if (Number.isNaN(selectedDate.getTime())) {
+        this.availabilityMessage = "Please select a valid date and time.";
+        return false;
+    }
+
+    const days = [
+        "Sunday", "Monday", "Tuesday", "Wednesday",
+        "Thursday", "Friday", "Saturday"
+    ];
+
+    const selectedDay = days[selectedDate.getDay()];
+    const selectedStart =
+        selectedDate.getHours() * 60 + selectedDate.getMinutes();
+
+    const selectedEnd = selectedStart + Number(duration);
+
+    const slots = this.getTutorAvailability(tutorId);
+
+    const matchingSlot = slots.find(slot => {
+        if (slot.day !== selectedDay) return false;
+
+        const [startHour, startMinute] = slot.startTime.split(":").map(Number);
+        const [endHour, endMinute] = slot.endTime.split(":").map(Number);
+
+        const slotStart = startHour * 60 + startMinute;
+        const slotEnd = endHour * 60 + endMinute;
+
+        return selectedStart >= slotStart && selectedEnd <= slotEnd;
+    });
+
+    if (!matchingSlot) {
+        this.availabilityMessage =
+            `This tutor is not available for a ${duration}-minute session ` +
+            `at the selected time on ${selectedDay}. Please choose another time.`;
+
+        return false;
+    }
+
+    return true;
+},
+
         // checks the date, saves the booking then jumps back to the list
         async createNewBooking() {
+            if (!this.checkTutorAvailability()) {
+                return;
+            }
             if (new Date(this.bookingForm.date).getTime() <= Date.now()) {
                 this.notify('error', 'Please choose a future date and time.')
                 return
@@ -1286,5 +1372,10 @@ select:focus {
 
 .pop-enter .modal {
   transform: scale(0.92) translateY(10px);
+}
+.availability-message {
+    color: #c0392b;
+    font-size: 13px;
+    margin: -8px 0 16px;
 }
 </style>

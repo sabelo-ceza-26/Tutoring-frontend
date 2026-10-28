@@ -1,13 +1,12 @@
 <template>
   <div class="sessions-layout">
     <main class="sessions-content">
-
       <section class="sessions-header">
         <div>
           <p class="header-label">SESSIONS</p>
           <h1>Completed Sessions</h1>
           <p class="header-description">
-            View tutoring that have already been completed.
+            View tutoring sessions that have already been completed.
           </p>
         </div>
       </section>
@@ -18,11 +17,13 @@
           <h2>{{ completedSessions.length }}</h2>
           <p>Completed sessions</p>
         </div>
+
         <div class="summary-card">
           <p class="summary-label">ONLINE</p>
           <h2>{{ onlineCompleted }}</h2>
           <p>Online sessions</p>
         </div>
+
         <div class="summary-card">
           <p class="summary-label">IN PERSON</p>
           <h2>{{ inPersonCompleted }}</h2>
@@ -38,38 +39,39 @@
           </div>
         </div>
 
-        <div class="table-header">
-          <span>Date</span>
-          <span>Student</span>
-          <span>Subject</span>
-          <span>Duration Type</span>
-          <span>Session Type</span>
-        </div>
+        <div class="table-scroll">
+          <div class="table-header">
+            <span>Date</span>
+            <span>Student</span>
+            <span>Subject</span>
+            <span>Duration</span>
+            <span>Session Type</span>
+          </div>
 
-        <div
-  v-for="session in completedSessions"
-  :key="session.bookingId"
-  class="session-row"
->
-  <span>{{ formatDate(session.date) }}</span>
-  <span>{{ session.studentName || session.studentNumber || '—' }}</span>
-  <span>{{ session.subjectCode }}</span>
-  <span>{{ session.duration }}</span>
-  <span>{{ session.sessionType }}</span>
-</div>
+          <div
+            v-for="session in completedSessions"
+            :key="session.bookingId"
+            class="session-row"
+          >
+            <span>{{ formatDate(session.date) }}</span>
+            <span>{{ session.studentName || session.studentNumber || '—' }}</span>
+            <span>{{ session.subjectCode }}</span>
+            <span>{{ session.duration }} min</span>
+            <span>{{ session.sessionType }}</span>
+          </div>
+        </div>
 
         <p v-if="error" class="error">{{ error }}</p>
 
         <div
-  v-if="!loading && completedSessions.length === 0"
-  class="empty-state"
->
-  <div class="empty-circle">✓</div>
-  <h3>No completed sessions</h3>
-  <p>Your completed tutoring sessions will appear here.</p>
-</div>
+          v-if="!loading && completedSessions.length === 0"
+          class="empty-state"
+        >
+          <div class="empty-circle">✓</div>
+          <h3>No completed sessions</h3>
+          <p>Your completed tutoring sessions will appear here.</p>
+        </div>
       </section>
-
     </main>
   </div>
 </template>
@@ -79,44 +81,44 @@ import { getSession } from '@/services/authService'
 import { getTutorSessions } from '@/services/tutorService'
 
 export default {
-  name: "CompletedSessions",
+  name: 'CompletedSessions',
 
   data() {
     return {
       completedSessions: [],
       loading: false,
-      error: ""
+      error: ''
     }
   },
 
   computed: {
     onlineCompleted() {
       return this.completedSessions.filter(
-        session => this.normalizeSessionType(session.sessionType) === "online"
+        session => this.normalizeSessionType(session.sessionType) === 'online'
       ).length
     },
 
     inPersonCompleted() {
       return this.completedSessions.filter(
-        session => this.normalizeSessionType(session.sessionType) === "in person"
+        session => this.normalizeSessionType(session.sessionType) === 'in person'
       ).length
     }
   },
 
-  async created() {
-    await this.loadCompletedSessions()
+  mounted() {
+    this.loadCompletedSessions()
   },
 
   methods: {
     normalizeSessionType(type) {
-      return (type || "")
+      return String(type || '')
         .toLowerCase()
         .trim()
-        .replace(/[_-]/g, " ")
+        .replace(/[_-]/g, ' ')
     },
 
     formatDate(value) {
-      if (!value) return "—"
+      if (!value) return '—'
 
       const date = new Date(value)
 
@@ -124,12 +126,12 @@ export default {
         return String(value)
       }
 
-      return date.toLocaleString("en-ZA", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit"
+      return date.toLocaleString('en-ZA', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
       })
     },
 
@@ -137,17 +139,18 @@ export default {
       const session = getSession()
 
       if (!session || !session.id) {
+        this.completedSessions = []
         return
       }
 
       this.loading = true
-      this.error = ""
+      this.error = ''
 
       try {
         const bookings = await getTutorSessions(session.id)
         const now = new Date()
 
-        this.completedSessions = bookings
+        this.completedSessions = (Array.isArray(bookings) ? bookings : [])
           .filter(booking => {
             if (!booking.date) return false
 
@@ -160,7 +163,7 @@ export default {
           })
           .sort((a, b) => new Date(b.date) - new Date(a.date))
       } catch (e) {
-        this.error = e.message || "Could not load completed sessions"
+        this.error = e.message || 'Could not load completed sessions'
       } finally {
         this.loading = false
       }
@@ -179,7 +182,6 @@ export default {
   color: #2c3e50;
   text-align: left;
 }
-
 
 .sessions-header {
   background-color: #2c3e50;
@@ -264,25 +266,32 @@ export default {
   color: #8a94a3;
   font-size: 12px;
   margin: 4px 0 0;
+}
 
+.table-scroll {
+  overflow-x: auto;
+}
+
+.table-header,
+.session-row {
+  display: grid;
+  grid-template-columns: 1.3fr 1.5fr 1.3fr 0.8fr 1.2fr;
+  gap: 12px;
+  min-width: 650px;
+  padding: 14px 5px;
+  align-items: center;
 }
 
 .table-header {
-  display: grid;
-  grid-template-columns: 1fr 1.5fr 1.5fr 1fr 1fr;
-  padding: 14px 5px;
   color: #8a94a3;
   font-size: 10px;
   font-weight: bold;
+  text-transform: uppercase;
 }
 
 .session-row {
-  display: grid;
-  grid-template-columns: 1fr 1.5fr 1.5fr 1fr 1fr;
-  padding: 15px 5px;
   border-top: 1px solid #e5e7eb;
   font-size: 13px;
-  align-items: center;
 }
 
 .empty-state {
@@ -325,12 +334,9 @@ export default {
   font-size: 13px;
 }
 
-
 @media (max-width: 900px) {
-
   .session-summary {
     grid-template-columns: 1fr;
   }
-
 }
 </style>

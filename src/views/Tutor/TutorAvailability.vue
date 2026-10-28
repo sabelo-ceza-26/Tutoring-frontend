@@ -208,21 +208,20 @@
 </template>
 
 
+
 <script>
+import { getSession } from '@/services/authService'
+
 export default {
   name: "TutorAvailability",
 
   data() {
     return {
-
+      session: getSession(),
       availability: [],
-
       showForm: false,
-
       editing: false,
-
       errorMessage: "",
-
       form: {
         day: "",
         startTime: "",
@@ -231,48 +230,85 @@ export default {
     }
   },
 
+  computed: {
+    tutorId() {
+      return this.session?.tutorId ||
+        this.session?.id ||
+        this.session?.user?.tutorId ||
+        ""
+    },
+
+    storageKey() {
+      return this.tutorId
+        ? `tutorAvailability_${this.tutorId}`
+        : ""
+    }
+  },
+
+  mounted() {
+    this.loadAvailability()
+  },
 
   methods: {
+    loadAvailability() {
+      if (!this.storageKey) {
+        this.errorMessage =
+          "Could not identify the logged-in tutor."
+        return
+      }
+
+      try {
+        this.availability = JSON.parse(
+          localStorage.getItem(this.storageKey) || "[]"
+        )
+      } catch {
+        this.availability = []
+      }
+    },
+
+    saveToStorage() {
+      if (!this.storageKey) {
+        this.errorMessage =
+          "Could not identify the logged-in tutor."
+        return false
+      }
+
+      localStorage.setItem(
+        this.storageKey,
+        JSON.stringify(this.availability)
+      )
+
+      window.dispatchEvent(
+        new Event("tutor-availability-updated")
+      )
+
+      return true
+    },
 
     openAddForm() {
-
       this.editing = false
       this.errorMessage = ""
-
       this.form = {
         day: "",
         startTime: "",
         endTime: ""
       }
-
       this.showForm = true
     },
-
 
     openEditForm(slot) {
-
       this.editing = true
       this.errorMessage = ""
-
-      this.form = {
-        day: slot.day,
-        startTime: slot.startTime,
-        endTime: slot.endTime
-      }
-
+      this.form = { ...slot }
       this.showForm = true
     },
 
-
     closeForm() {
-
       this.showForm = false
       this.errorMessage = ""
     },
 
-
     saveAvailability() {
-
       if (
         !this.form.day ||
         !this.form.startTime ||
@@ -282,63 +318,48 @@ export default {
         return
       }
 
-
       if (this.form.startTime >= this.form.endTime) {
         this.errorMessage =
           "End time must be later than start time."
         return
       }
 
+      const index = this.availability.findIndex(
+        slot => slot.day === this.form.day
+      )
 
       if (this.editing) {
-
-        const index = this.availability.findIndex(
-          slot => slot.day === this.form.day
-        )
-
         if (index !== -1) {
-
           this.availability.splice(index, 1, {
             ...this.form
           })
         }
-
       } else {
-
-        const alreadyExists =
-          this.availability.some(
-            slot => slot.day === this.form.day
-          )
-
-        if (alreadyExists) {
-
+        if (index !== -1) {
           this.errorMessage =
             "Availability for this day already exists."
-
           return
         }
 
-        this.availability.push({
-          ...this.form
-        })
+        this.availability.push({ ...this.form })
       }
 
-
-      this.closeForm()
+      if (this.saveToStorage()) {
+        this.closeForm()
+      }
     },
 
-
     removeAvailability(day) {
+      this.availability = this.availability.filter(
+        slot => slot.day !== day
+      )
 
-      this.availability =
-        this.availability.filter(
-          slot => slot.day !== day
-        )
+      this.saveToStorage()
     }
-
   }
 }
 </script>
+
 
 
 <style scoped>
