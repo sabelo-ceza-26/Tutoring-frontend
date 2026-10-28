@@ -301,7 +301,7 @@
             <th>Duration</th>
             <th>Session Type</th>
             <th>Subject Code</th>
-            <th>Student </th>
+            <th>Student</th>
             <th>Tutor</th>
             <th></th>
           </tr>
@@ -313,8 +313,8 @@
             <td>{{ b.duration }}</td>
             <td>{{ b.sessionType }}</td>
             <td>{{ b.subjectCode }}</td>
-            <td>{{ b.studentNumber || (b.student ? b.student.studentNumber : '—') }}</td>
-            <td>{{ b.tutorId || (b.tutor ? b.tutor.tutorId : '—') }}</td>
+            <td>{{ b.studentNumber || '—' }}</td>
+            <td>{{ b.tutorId || '—' }}</td>
             <td class="row-actions">
               <button type="button" class="ghost small" @click="editBooking(b)">Edit</button>
               <button type="button" class="danger small" @click="removeBooking(b.bookingId)">Delete</button>
@@ -401,7 +401,7 @@ import {
   createSubject,
   updateSubject,
   deleteSubject,
-  getBookings,
+  getBookingsWithPeople,
   updateBooking,
   deleteBooking,
   getPayments,
@@ -465,7 +465,7 @@ export default {
       const results = await Promise.allSettled([
         getDashboard(),
         getSubjects(),
-        getBookings(),
+        getBookingsWithPeople(),
         getPayments()
       ])
       dashboardRes = results[0].status === 'fulfilled' ? results[0].value : null
