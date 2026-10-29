@@ -507,14 +507,19 @@ export default {
         },
 
         // when a subject is picked, auto-fill the tutor if one teaches it
+        // but keep a tutor that was already chosen (for example from "Book with")
         'bookingForm.subjectCode'(code) {
             if (!code) return
+
+            const current = this.bookingForm.tutorId
+            const currentTeaches = this.tutorSubjects.some(
+                ts => ts.subjectCode === code && String(ts.tutorId) === String(current)
+            )
+
+            if (current && currentTeaches) return
+
             const match = this.tutorSubjects.find(ts => ts.subjectCode === code)
-            if (match) {
-                this.bookingForm.tutorId = match.tutorId
-            } else {
-                this.bookingForm.tutorId = ''
-            }
+            this.bookingForm.tutorId = match ? match.tutorId : ''
         },
         'bookingForm.tutorId'() {
             this.availabilityMessage = ''
@@ -562,84 +567,125 @@ export default {
         },
 
         getTutorAvailability(tutorId) {
-    if (!tutorId) return [];
+            if (!tutorId) return []
 
-    try {
-        return JSON.parse(
-            localStorage.getItem(`tutorAvailability_${tutorId}`) || "[]"
-        );
-    } catch {
-        return [];
-    }
-},
+            try {
+                const saved = JSON.parse(
+                    localStorage.getItem(`tutorAvailability_${tutorId}`) || "[]"
+                )
+                return Array.isArray(saved) ? saved : []
+            } catch {
+                return []
+            }
+        },
 
-checkTutorAvailability() {
-    this.availabilityMessage = "";
+        // the sessions the tutor already has booked on the backend
+        getTutorBookings(tutorId) {
+            const tutor = this.tutors.find(
+                t => String(t.tutorId) === String(tutorId)
+            )
+            return tutor && Array.isArray(tutor.bookings) ? tutor.bookings : []
+        },
 
-    const { tutorId, date, duration } = this.bookingForm;
+        checkTutorAvailability() {
+            this.availabilityMessage = ""
 
-    if (!tutorId || !date || !duration) {
-        this.availabilityMessage = "Please select a tutor, date and duration.";
-        return false;
-    }
+            const { tutorId, date, duration } = this.bookingForm
 
-    const selectedDate = new Date(date);
+            if (!tutorId || !date || !duration) {
+                this.availabilityMessage = "Please select a tutor, date and duration."
+                return false
+            }
 
-    if (Number.isNaN(selectedDate.getTime())) {
-        this.availabilityMessage = "Please select a valid date and time.";
-        return false;
-    }
+            const selectedDate = new Date(date)
 
-    const days = [
-        "Sunday", "Monday", "Tuesday", "Wednesday",
-        "Thursday", "Friday", "Saturday"
-    ];
+            if (Number.isNaN(selectedDate.getTime())) {
+                this.availabilityMessage = "Please select a valid date and time."
+                return false
+            }
 
-    const selectedDay = days[selectedDate.getDay()];
-    const selectedDateKey = String(date).split("T")[0];
-    const selectedStart =
-        selectedDate.getHours() * 60 + selectedDate.getMinutes();
+            const durationMinutes = Number(duration)
+            const selectedStart = selectedDate.getTime()
+            const selectedEnd = selectedStart + durationMinutes * 60000
 
-    const selectedEnd = selectedStart + Number(duration);
+            // never allow two sessions to overlap on the tutor's calendar
+            const conflict = this.getTutorBookings(tutorId).find(booking => {
+                if (!booking.date) return false
 
-    const slots = this.getTutorAvailability(tutorId);
+                const bookedStart = new Date(booking.date).getTime()
 
-    const matchingSlot = slots.find(slot => {
-        // date-specific availability
-        if (slot.date) {
-            if (slot.date !== selectedDateKey) return false;
-        } else if (slot.day !== selectedDay) {
-            // older weekly availability
-            return false;
-        }
+                if (Number.isNaN(bookedStart)) return false
 
-        const [startHour, startMinute] = String(slot.startTime).split(":").map(Number);
-        const [endHour, endMinute] = String(slot.endTime).split(":").map(Number);
+                const bookedEnd =
+                    bookedStart + Number(booking.duration || 60) * 60000
 
-        const slotStart = startHour * 60 + startMinute;
-        const slotEnd = endHour * 60 + endMinute;
+                return selectedStart < bookedEnd && selectedEnd > bookedStart
+            })
 
-        return selectedStart >= slotStart && selectedEnd <= slotEnd;
-    });
+            if (conflict) {
+                this.availabilityMessage =
+                    `This tutor already has a session on ` +
+                    `${this.formatDate(conflict.date)}. Please choose another time.`
+                return false
+            }
 
-    if (!matchingSlot) {
-        const when = selectedDate.toLocaleString("en-ZA", {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit"
-        });
+            const slots = this.getTutorAvailability(tutorId)
 
-        this.availabilityMessage =
-            `This tutor is not available for a ${duration}-minute session ` +
-            `on ${when}. Please choose another time.`;
+            // Availability is saved in the tutor's browser. If this browser
+            // has no slots for the tutor, don't block the student from booking.
+            if (!slots.length) return true
 
-        return false;
-    }
+            const days = [
+                "Sunday", "Monday", "Tuesday", "Wednesday",
+                "Thursday", "Friday", "Saturday"
+            ]
 
-    return true;
-},
+            const selectedDay = days[selectedDate.getDay()]
+            const selectedDateKey = String(date).split("T")[0]
+            const selectedStartMinutes =
+                selectedDate.getHours() * 60 + selectedDate.getMinutes()
+            const selectedEndMinutes = selectedStartMinutes + durationMinutes
+
+            const matchingSlot = slots.find(slot => {
+                // date-specific availability
+                if (slot.date) {
+                    if (String(slot.date).split("T")[0] !== selectedDateKey) return false
+                } else if (slot.day !== selectedDay) {
+                    // older weekly availability
+                    return false
+                }
+
+                const [startHour, startMinute] = String(slot.startTime || "").split(":").map(Number)
+                const [endHour, endMinute] = String(slot.endTime || "").split(":").map(Number)
+
+                if ([startHour, startMinute, endHour, endMinute].some(n => Number.isNaN(n))) {
+                    return false
+                }
+
+                const slotStart = startHour * 60 + startMinute
+                const slotEnd = endHour * 60 + endMinute
+
+                return selectedStartMinutes >= slotStart && selectedEndMinutes <= slotEnd
+            })
+
+            if (!matchingSlot) {
+                const when = selectedDate.toLocaleString("en-ZA", {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit"
+                })
+
+                this.availabilityMessage =
+                    `This tutor is not available for a ${duration}-minute session ` +
+                    `on ${when}. Please choose another time.`
+
+                return false
+            }
+
+            return true
+        },
 
         // checks the date, saves the booking then jumps back to the list
         async createNewBooking() {

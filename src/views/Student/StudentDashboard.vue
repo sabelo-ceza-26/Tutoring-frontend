@@ -22,31 +22,35 @@
                     class="action-button new-booking"
                     @click="changePage('book')"
                     >
-                        + New Booking
+                        <span class="action-label">BOOKING</span>
+                        <span class="action-text">+ New Booking</span>
                     </button>
 
                     <button
-                    class="action-button"
+                    class="action-button payments"
                     :class="{ active: activePanel === 'payments' }"
                     @click="togglePanel('payments')"
                     >
-                        Payments
+                        <span class="action-label">PAYMENTS</span>
+                        <span class="action-text">Payments</span>
                     </button>
 
                     <button
-                    class="action-button"
+                    class="action-button history"
                     :class="{ active: activePanel === 'history' }"
                     @click="togglePanel('history')"
                     >
-                        Booking History
+                        <span class="action-label">HISTORY</span>
+                        <span class="action-text">Booking History</span>
                     </button>
 
                     <button
-                    class="action-button"
+                    class="action-button tutors"
                     :class="{ active: activePanel === 'tutors' }"
                     @click="togglePanel('tutors')"
                     >
-                        Find Tutors
+                        <span class="action-label">TUTORS</span>
+                        <span class="action-text">Find Tutors</span>
                     </button>
 
                 </div>
@@ -787,7 +791,10 @@ export default {
 .dashboard-layout {
   display: flex;
   min-height: 100vh;
-  background-color: #f7f8fa;
+  background-color: #f4f7fc;
+  background-image:
+    radial-gradient(circle at 92% 6%, rgba(59, 130, 246, 0.12), transparent 40%),
+    linear-gradient(180deg, #f7f9fc 0%, #eef3f9 100%);
   font-family: Avenir, Helvetica, Arial, sans-serif;
   color: #2c3e50;
   text-align: left;
@@ -800,28 +807,51 @@ export default {
 }
 
 .dashboard-header {
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 18px;
   flex-wrap: wrap;
-  background-color: #2c3e50;
+  background: linear-gradient(135deg, #1f2d45 0%, #2c3e50 48%, #355a72 100%);
   color: #ffffff;
-  padding: 32px;
-  border-radius: 12px;
+  padding: 34px 32px;
+  border: 1px solid rgba(242, 140, 40, 0.32);
+  border-radius: 18px;
   margin-bottom: 22px;
+  box-shadow: 0 14px 34px rgba(31, 45, 69, 0.22);
+}
+
+.dashboard-header::after {
+  content: "";
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  left: -80px;
+  bottom: -130px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.35), transparent 68%);
+  pointer-events: none;
 }
 
 .header-text {
+  position: relative;
+  z-index: 1;
   min-width: 0;
 }
 
 .header-label {
-  color: #f28c28;
-  font-size: 11px;
+  display: inline-block;
+  color: #ffb066;
+  font-size: 10px;
   font-weight: bold;
-  letter-spacing: 1.5px;
-  margin: 0 0 7px;
+  letter-spacing: 1.6px;
+  margin: 0 0 9px;
+  padding: 5px 12px;
+  border: 1px solid rgba(242, 140, 40, 0.45);
+  border-radius: 999px;
+  background: rgba(242, 140, 40, 0.15);
 }
 
 .dashboard-header h1 {
@@ -831,7 +861,7 @@ export default {
 
 .header-description {
   color: #d7dde3;
-  font-size: 14px;
+  font-size: 15px;
   margin: 7px 0 0;
 }
 
@@ -860,45 +890,98 @@ export default {
 }
 
 .action-buttons {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
-  flex-wrap: wrap;
 }
 
+/* compact version of the tutor dashboard summary cards */
 .action-button {
-  background-color: #ffffff;
-  color: #2c3e50;
-  border: 1px solid #e5e7eb;
-  border-radius: 7px;
-  padding: 11px 18px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  text-align: left;
+  padding: 12px 14px;
+  border: 1px solid #f7d3ab;
+  border-top: 3px solid #f28c28;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #fff8ef 0%, #ffe7cf 100%);
+  color: #22354d;
   font-family: inherit;
-  font-size: 13px;
   cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  box-shadow: 0 4px 12px rgba(242, 140, 40, 0.1);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+.action-label {
+  color: #b35c10;
+  font-size: 9px;
+  font-weight: bold;
+  letter-spacing: 1.1px;
+}
+
+.action-text {
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .action-button:hover {
-  border-color: #f28c28;
-  color: #b35c10;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(242, 140, 40, 0.18);
 }
 
 .action-button.active {
-  background-color: #f28c28;
-  border-color: #f28c28;
-  color: #ffffff;
-  font-weight: bold;
+  filter: brightness(0.98);
+  box-shadow: inset 0 0 0 2px rgba(239, 125, 19, 0.45),
+    0 8px 18px rgba(242, 140, 40, 0.2);
 }
 
-.action-button.new-booking {
-  background-color: #2c3e50;
-  border-color: #2c3e50;
-  color: #ffffff;
+.action-button.payments {
+  background: linear-gradient(135deg, #f0f6ff 0%, #dbe8ff 100%);
+  border-color: #c7d9fb;
+  border-top-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
 }
 
-.action-button.new-booking:hover {
-  background-color: #f28c28;
-  border-color: #f28c28;
-  color: #ffffff;
+.action-button.payments .action-label {
+  color: #2563a8;
+}
+
+.action-button.payments:hover {
+  box-shadow: 0 8px 18px rgba(59, 130, 246, 0.18);
+}
+
+.action-button.history {
+  background: linear-gradient(135deg, #edfaf4 0%, #d5f0e5 100%);
+  border-color: #bfe7d5;
+  border-top-color: #2e9e7a;
+  box-shadow: 0 4px 12px rgba(46, 158, 122, 0.1);
+}
+
+.action-button.history .action-label {
+  color: #1e7a58;
+}
+
+.action-button.history:hover {
+  box-shadow: 0 8px 18px rgba(46, 158, 122, 0.18);
+}
+
+.action-button.tutors {
+  background: linear-gradient(135deg, #fdf2f1 0%, #f8dcd9 100%);
+  border-color: #f4c9c5;
+  border-top-color: #d9534f;
+  box-shadow: 0 4px 12px rgba(217, 83, 79, 0.1);
+}
+
+.action-button.tutors .action-label {
+  color: #b03a34;
+}
+
+.action-button.tutors:hover {
+  box-shadow: 0 8px 18px rgba(217, 83, 79, 0.18);
 }
 
 /* PANELS */
@@ -919,17 +1002,19 @@ export default {
 }
 
 .tutor-card {
-  background-color: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-top: 4px solid #f28c28;
-  border-radius: 10px;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #fffaf4 100%) padding-box,
+    linear-gradient(135deg, rgba(242, 140, 40, 0.75), rgba(255, 196, 133, 0.35)) border-box;
+  border: 1.5px solid transparent;
+  border-radius: 16px;
   padding: 22px;
+  box-shadow: 0 6px 18px rgba(44, 62, 80, 0.07);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .tutor-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(44, 62, 80, 0.12);
+  transform: translateY(-4px);
+  box-shadow: 0 16px 32px rgba(239, 125, 19, 0.18);
 }
 
 .tutor-top {
@@ -941,7 +1026,7 @@ export default {
 .tutor-avatar {
   width: 48px;
   height: 48px;
-  background-color: #2c3e50;
+  background: linear-gradient(135deg, #2c3e50 0%, #3d566e 60%, #f28c28 160%);
   color: #ffffff;
   border-radius: 50%;
   display: flex;
@@ -950,6 +1035,7 @@ export default {
   font-weight: bold;
   font-size: 16px;
   flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(44, 62, 80, 0.22);
 }
 
 .tutor-name h3 {
@@ -966,11 +1052,12 @@ export default {
 .rate-badge {
   display: inline-block;
   margin-top: 14px;
-  background: #fff3e7;
+  background: linear-gradient(135deg, #fff3e7 0%, #ffe3c7 100%);
   color: #b35c10;
   font-weight: bold;
   font-size: 13px;
   padding: 5px 12px;
+  border: 1px solid rgba(242, 140, 40, 0.35);
   border-radius: 999px;
   white-space: nowrap;
 }
@@ -991,18 +1078,22 @@ export default {
 .book-button {
   display: block;
   width: 100%;
-  background-color: #2c3e50;
+  background: linear-gradient(135deg, #2c3e50 0%, #3d566e 100%);
   color: #ffffff;
   border: none;
-  border-radius: 7px;
+  border-radius: 9px;
   padding: 11px 18px;
   font-family: inherit;
   font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
 }
 
 .book-button:hover {
-  background-color: #f28c28;
+  background: linear-gradient(135deg, #f5a24a 0%, #ef7d13 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(239, 125, 19, 0.3);
 }
 
 @keyframes panel-in {
@@ -1038,10 +1129,13 @@ export default {
 }
 
 .dashboard-card {
-  background-color: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
+  background:
+    linear-gradient(#ffffff, #ffffff) padding-box,
+    linear-gradient(135deg, rgba(242, 140, 40, 0.55), rgba(59, 130, 246, 0.35)) border-box;
+  border: 1.5px solid transparent;
+  border-radius: 16px;
   padding: 22px;
+  box-shadow: 0 8px 24px rgba(44, 62, 80, 0.08);
 }
 
 .card-header {
@@ -1049,18 +1143,19 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding-bottom: 14px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #eef3f9;
   margin-bottom: 8px;
 }
 
 .card-header h2 {
   font-size: 17px;
   margin: 0;
+  color: #22354d;
 }
 
 .card-header p {
   color: #8a94a3;
-  font-size: 12px;
+  font-size: 14px;
   margin: 4px 0 0;
 }
 
@@ -1074,10 +1169,11 @@ export default {
 }
 
 .empty-circle {
-  width: 38px;
-  height: 38px;
-  background-color: #fff3e7;
-  color: #f28c28;
+  width: 42px;
+  height: 42px;
+  background: linear-gradient(135deg, #fff3e7 0%, #ffe0c2 100%);
+  color: #d9760f;
+  border: 1px solid rgba(242, 140, 40, 0.3);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -1093,7 +1189,7 @@ export default {
 
 .empty-state p {
   color: #8a94a3;
-  font-size: 12px;
+  font-size: 14px;
   margin: 0;
 }
 
@@ -1109,16 +1205,26 @@ export default {
 }
 
 .table-header {
-  color: #8a94a3;
+  color: #64748b;
   font-size: 10px;
   font-weight: bold;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
   text-transform: uppercase;
+  background: linear-gradient(90deg, #fff5e9 0%, #f1f6ff 100%);
+  border: 1px solid #edf2f9;
+  border-radius: 10px;
 }
 
 .table-row {
   border-top: 1px solid #edf1f5;
   font-size: 13px;
+  border-radius: 8px;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.table-row:hover {
+  background-color: #f9fbff;
+  box-shadow: inset 3px 0 0 #f28c28;
 }
 
 .session-columns {
@@ -1172,9 +1278,15 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 0;
-  border-bottom: 1px solid #e5e7eb;
+  padding: 14px 10px;
+  border-bottom: 1px solid #eef2f7;
+  border-radius: 8px;
   font-size: 12px;
+  transition: background-color 0.15s ease;
+}
+
+.overview-item:hover {
+  background-color: #f9fbff;
 }
 
 .overview-item div {
@@ -1184,14 +1296,38 @@ export default {
 }
 
 .overview-dot {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   background-color: #f28c28;
   border-radius: 50%;
+  box-shadow: 0 0 0 4px rgba(242, 140, 40, 0.16);
+}
+
+.overview-item:nth-child(2) .overview-dot {
+  background-color: #2e9e7a;
+  box-shadow: 0 0 0 4px rgba(46, 158, 122, 0.16);
+}
+
+.overview-item:nth-child(3) .overview-dot {
+  background-color: #d9534f;
+  box-shadow: 0 0 0 4px rgba(217, 83, 79, 0.16);
 }
 
 .overview-item strong {
-  font-size: 15px;
+  font-size: 18px;
+  color: #22354d;
+}
+
+.overview-item:nth-child(1) strong {
+  color: #b35c10;
+}
+
+.overview-item:nth-child(2) strong {
+  color: #1e7a58;
+}
+
+.overview-item:nth-child(3) strong {
+  color: #b03a34;
 }
 
 .text-button {
@@ -1211,7 +1347,7 @@ export default {
 /* PAYMENTS PANEL */
 .section-subtitle {
   margin: 18px 0 6px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: bold;
   letter-spacing: 1px;
   text-transform: uppercase;
@@ -1232,27 +1368,31 @@ export default {
 }
 
 .pay-now-button {
-  background-color: #f28c28;
+  background: linear-gradient(135deg, #f5a24a 0%, #ef7d13 100%);
   color: #ffffff;
   border: none;
-  border-radius: 7px;
+  border-radius: 8px;
   padding: 7px 14px;
   font-family: inherit;
   font-size: 12px;
   font-weight: bold;
   cursor: pointer;
   white-space: nowrap;
+  box-shadow: 0 3px 10px rgba(239, 125, 19, 0.28);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .pay-now-button:hover {
-  background-color: #2c3e50;
+  background: linear-gradient(135deg, #2c3e50 0%, #3d566e 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(44, 62, 80, 0.25);
 }
 
 .settled-note {
   padding: 16px;
-  background-color: #e6f4ec;
+  background: linear-gradient(135deg, #e6f4ec 0%, #d5efe2 100%);
   border: 1px solid #b7e4cd;
-  border-radius: 8px;
+  border-radius: 10px;
   color: #1e7a58;
   font-size: 13px;
 }
@@ -1341,6 +1481,8 @@ export default {
 
 .payment-card {
   background-color: white;
+  border: 1px solid #e3e9f2;
+  border-top: 3px solid #f28c28;
   border-radius: 15px;
   padding: 22px;
   margin-bottom: 20px;
@@ -1524,6 +1666,17 @@ export default {
 @media (max-width: 1050px) {
 
   .dashboard-row {
+    grid-template-columns: 1fr;
+  }
+
+  .action-buttons {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+
+  .action-buttons {
     grid-template-columns: 1fr;
   }
 }
