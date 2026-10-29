@@ -142,6 +142,7 @@
         @refresh="loadAll"
         @notify="handleNotify"
         @change-page="changePage"
+        @open-payment="onOpenPayment"
       />
 
       <!-- payments page -->
@@ -150,8 +151,10 @@
         :me="me"
         :tutors="tutors"
         :subjects="subjects"
+        :initialBookingId="pendingPaymentId"
         @refresh="loadAll"
         @notify="handleNotify"
+        @payment-opened="pendingPaymentId = ''"
       />
 
     </div>
@@ -200,6 +203,7 @@ export default {
       subjects: [],
       tutorSubjects: [],
       selectedTutorId: "",
+      pendingPaymentId: "",
       error: "",
       success: "",
       showLogoutConfirm: false
@@ -311,6 +315,12 @@ export default {
     bookWith(tutorId) {
       this.selectedTutorId = tutorId
       this.changePage('book')
+    },
+
+    // after a booking is created, send the student straight to payment
+    onOpenPayment(booking) {
+      this.pendingPaymentId = booking && booking.bookingId ? String(booking.bookingId) : ''
+      this.changePage('payments')
     },
 
     // shows the success or error message at the top

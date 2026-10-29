@@ -6,7 +6,7 @@
         <p class="header-label">TUTOR MANAGEMENT</p>
         <h1>Availability</h1>
         <p class="header-description">
-          Set the days and times you're available for tutoring sessions.
+          Set the dates and times you're available for tutoring sessions.
         </p>
       </div>
 
@@ -21,9 +21,9 @@
     <section class="availability-summary">
 
       <div class="summary-card">
-        <p class="summary-label">AVAILABLE DAYS</p>
+        <p class="summary-label">AVAILABLE SLOTS</p>
         <h2>{{ availability.length }}</h2>
-        <p>Days currently available</p>
+        <p>Time slots currently available</p>
       </div>
 
     </section>
@@ -33,12 +33,13 @@
       <div class="card-header">
         <div>
           <h2>Your Availability</h2>
-          <p>Manage your weekly tutoring schedule</p>
+          <p>Manage the dates and times you're available</p>
         </div>
       </div>
 
 
       <div class="table-header">
+        <span>Date</span>
         <span>Day</span>
         <span>Start Time</span>
         <span>End Time</span>
@@ -47,11 +48,13 @@
 
 
       <div
-        v-for="slot in availability"
-        :key="slot.day"
+        v-for="(slot, index) in availability"
+        :key="slot.id || `${slot.date || slot.day}-${slot.startTime}-${index}`"
         class="availability-row"
       >
-        <strong>{{ slot.day }}</strong>
+        <strong>{{ formatSlotDate(slot) }}</strong>
+
+        <span>{{ slotDayName(slot) }}</span>
 
         <span>{{ slot.startTime }}</span>
 
@@ -61,14 +64,14 @@
 
           <button
             class="edit-button"
-            @click="openEditForm(slot)"
+            @click="openEditForm(index)"
           >
             Edit
           </button>
 
           <button
             class="remove-button"
-            @click="removeAvailability(slot.day)"
+            @click="removeAvailability(index)"
           >
             Remove
           </button>
@@ -88,7 +91,7 @@
         <h3>No availability set</h3>
 
         <p>
-          Add the days and times you're available to tutor.
+          Add the dates and times you're available to tutor.
         </p>
 
         <button
@@ -117,7 +120,7 @@
             </h2>
 
             <p>
-              Choose the day and times you're available.
+              Choose the date and times you're available.
             </p>
           </div>
 
@@ -131,26 +134,13 @@
         </div>
         <div class="form-group">
 
-          <label>Day</label>
+          <label>Date</label>
 
-          <select
-            v-model="form.day"
-            :disabled="editing"
+          <input
+            v-model="form.date"
+            type="date"
+            :min="todayDate"
           >
-
-            <option value="">
-              Select a day
-            </option>
-
-            <option>Monday</option>
-            <option>Tuesday</option>
-            <option>Wednesday</option>
-            <option>Thursday</option>
-            <option>Friday</option>
-            <option>Saturday</option>
-            <option>Sunday</option>
-
-          </select>
 
         </div>
 
@@ -221,9 +211,10 @@ export default {
       availability: [],
       showForm: false,
       editing: false,
+      editingIndex: -1,
       errorMessage: "",
       form: {
-        day: "",
+        date: "",
         startTime: "",
         endTime: ""
       }
@@ -242,6 +233,13 @@ export default {
       return this.tutorId
         ? `tutorAvailability_${this.tutorId}`
         : ""
+    },
+
+    todayDate() {
+      const now = new Date()
+      const month = String(now.getMonth() + 1).padStart(2, "0")
+      const day = String(now.getDate()).padStart(2, "0")
+      return `${now.getFullYear()}-${month}-${day}`
     }
   },
 
@@ -287,30 +285,41 @@ export default {
 
     openAddForm() {
       this.editing = false
+      this.editingIndex = -1
       this.errorMessage = ""
       this.form = {
-        day: "",
+        date: "",
         startTime: "",
         endTime: ""
       }
       this.showForm = true
     },
 
-    openEditForm(slot) {
+    openEditForm(index) {
+      const slot = this.availability[index]
+
+      if (!slot) return
+
       this.editing = true
+      this.editingIndex = index
       this.errorMessage = ""
-      this.form = { ...slot }
+      this.form = {
+        date: slot.date || "",
+        startTime: slot.startTime,
+        endTime: slot.endTime
+      }
       this.showForm = true
     },
 
     closeForm() {
       this.showForm = false
+      this.editingIndex = -1
       this.errorMessage = ""
     },
 
     saveAvailability() {
       if (
-        !this.form.day ||
+        !this.form.date ||
         !this.form.startTime ||
         !this.form.endTime
       ) {
@@ -324,37 +333,78 @@ export default {
         return
       }
 
-      const index = this.availability.findIndex(
-        slot => slot.day === this.form.day
+      if (this.form.date < this.todayDate) {
+        this.errorMessage =
+          "Please choose today or a future date."
+        return
+      }
+
+      const duplicateIndex = this.availability.findIndex(
+        (slot, index) =>
+          index !== this.editingIndex &&
+          slot.date === this.form.date &&
+          slot.startTime === this.form.startTime
       )
 
-      if (this.editing) {
-        if (index !== -1) {
-          this.availability.splice(index, 1, {
-            ...this.form
-          })
-        }
-      } else {
-        if (index !== -1) {
-          this.errorMessage =
-            "Availability for this day already exists."
-          return
-        }
-
-        this.availability.push({ ...this.form })
+      if (duplicateIndex !== -1) {
+        this.errorMessage =
+          "Availability for this date and start time already exists."
+        return
       }
+
+      const slot = {
+        id: `slot-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        date: this.form.date,
+        startTime: this.form.startTime,
+        endTime: this.form.endTime
+      }
+
+      if (this.editing && this.editingIndex !== -1) {
+        this.availability.splice(this.editingIndex, 1, slot)
+      } else {
+        this.availability.push(slot)
+      }
+
+      this.availability.sort((a, b) => {
+        if (a.date !== b.date) return a.date < b.date ? -1 : 1
+        return a.startTime < b.startTime ? -1 : 1
+      })
 
       if (this.saveToStorage()) {
         this.closeForm()
       }
     },
 
-    removeAvailability(day) {
-      this.availability = this.availability.filter(
-        slot => slot.day !== day
-      )
-
+    removeAvailability(index) {
+      this.availability.splice(index, 1)
       this.saveToStorage()
+    },
+
+    parseDate(value) {
+      const [year, month, day] = String(value).split("-").map(Number)
+      return new Date(year, month - 1, day)
+    },
+
+    formatSlotDate(slot) {
+      if (!slot.date) {
+        return `Every ${slot.day}`
+      }
+
+      return this.parseDate(slot.date).toLocaleDateString("en-ZA", {
+        year: "numeric",
+        month: "short",
+        day: "numeric"
+      })
+    },
+
+    slotDayName(slot) {
+      if (!slot.date) {
+        return slot.day || "-"
+      }
+
+      return this.parseDate(slot.date).toLocaleDateString("en-ZA", {
+        weekday: "long"
+      })
     }
   }
 }
@@ -476,7 +526,8 @@ export default {
 .availability-row {
   display: grid;
   grid-template-columns:
-    1.5fr
+    1.2fr
+    1fr
     1fr
     1fr
     1.3fr;

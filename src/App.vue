@@ -21,8 +21,6 @@
         <span>FundaNathi Tutoring Service</span>
       </router-link>
       <div v-if="session" class="links">
-        <span class="user">Hi, {{ session.name }} ({{ session.role }})</span>
-        <router-link v-if="session.role === 'student'" to="/profile">Profile</router-link>
         <button type="button" @click="doLogout">Logout</button>
       </div>
     </nav>

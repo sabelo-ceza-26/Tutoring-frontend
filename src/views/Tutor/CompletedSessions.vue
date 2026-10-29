@@ -152,6 +152,13 @@ export default {
 
         this.completedSessions = (Array.isArray(bookings) ? bookings : [])
           .filter(booking => {
+            if (
+              !booking.payment ||
+              String(booking.payment.status).trim().toUpperCase() !== 'PAID'
+            ) {
+              return false
+            }
+
             if (!booking.date) return false
 
             const bookingDate = new Date(booking.date)

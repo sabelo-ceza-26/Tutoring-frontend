@@ -224,7 +224,6 @@
             <td>{{ s.email }}</td>
             <td>{{ s.levelOfStudy }}</td>
             <td class="row-actions">
-              <button type="button" class="ghost small" @click="editStudent(s)">Edit</button>
               <button type="button" class="danger small" @click="removeStudent(s.studentNumber)">Delete</button>
             </td>
           </tr>
@@ -408,7 +407,6 @@ import {
   deleteStudent,
   deleteTutor
 } from '@/services/adminService'
-import { updateStudent } from '@/services/studentService'
 import { updateTutor } from '@/services/tutorService'
 
 export default {
@@ -524,14 +522,6 @@ export default {
     },
 
     // --- Students ---
-    editStudent(s) {
-      this.openModal('Edit Student', [
-        { label: 'Student Number', key: 'studentNumber', disabled: true },
-        { label: 'Name', key: 'studentName' },
-        { label: 'Email', key: 'email', type: 'email' },
-        { label: 'Level of Study', key: 'levelOfStudy' }
-      ], { ...s }, 'student')
-    },
     async removeStudent(studentNumber) {
       if (!window.confirm(`Delete student ${studentNumber}?`)) return
       try {
@@ -597,15 +587,6 @@ export default {
         if (this.editModal.type === 'subject') {
           await updateSubject(form)
           this.subjects = (await getSubjects()) || []
-        } else if (this.editModal.type === 'student') {
-          await updateStudent({
-            studentNumber: form.studentNumber,
-            firstName: form.studentName.split(' ')[0] || '',
-            lastName: form.studentName.split(' ').slice(1).join(' ') || '',
-            email: form.email,
-            levelOfStudy: form.levelOfStudy
-          })
-          this.loadAll()
         } else if (this.editModal.type === 'tutor') {
           await updateTutor({
             tutorId: form.tutorId,
