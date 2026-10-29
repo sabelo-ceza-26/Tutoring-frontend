@@ -765,7 +765,8 @@ checkTutorAvailability() {
 }
 
 .page-content.narrow {
-  max-width: 820px;
+  max-width: none;
+  width: 100%;
 }
 
 .page-header {
