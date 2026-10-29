@@ -60,6 +60,7 @@
           <span class="cell-strong">{{ fmtR(amountDue(b)) }}</span>
           <span class="row-actions-cell">
             <button class="pay-now-button" @click="openPay(b)">Pay Now</button>
+            <button class="cancel-now-button" @click="cancelBooking(b)">Cancel</button>
           </span>
         </div>
       </div>
@@ -224,6 +225,7 @@
 
 <script>
 import { createPayment } from '@/services/paymentService'
+import { deleteBooking } from '@/services/bookingService'
 
 export default {
   name: 'StudentPaymentPage',
@@ -240,11 +242,16 @@ export default {
     subjects: {
       type: Array,
       default: () => []
+    },
+    initialBookingId: {
+      type: String,
+      default: ''
     }
   },
 
   data() {
     return {
+      handledInitialId: '',
       payTarget: null,
       paymentForm: { amount: 0, paymentMethod: '' },
       modalError: '',
@@ -293,7 +300,37 @@ export default {
     }
   },
 
+  watch: {
+    initialBookingId: {
+      immediate: true,
+      handler() {
+        this.tryOpenInitialBooking()
+      }
+    },
+    myBookings: {
+      deep: true,
+      handler() {
+        this.tryOpenInitialBooking()
+      }
+    }
+  },
+
   methods: {
+    // opens the payment pop up for a booking that was just created
+    tryOpenInitialBooking() {
+      const id = this.initialBookingId
+      if (!id || this.handledInitialId === id) return
+
+      const booking = this.myBookings.find(
+        b => String(b.bookingId) === String(id)
+      )
+      if (!booking) return
+
+      this.handledInitialId = id
+      this.openPay(booking)
+      this.$emit('payment-opened')
+    },
+
     tutorForBooking(booking) {
       for (const t of this.tutors) {
         if ((t.bookings || []).some(b => b.bookingId === booking.bookingId)) {
@@ -327,6 +364,19 @@ export default {
     closePay() {
       this.payTarget = null
       this.modalError = ''
+    },
+
+    // there is no dedicated cancel endpoint yet, so remove the booking
+    async cancelBooking(booking) {
+      if (!window.confirm(`Cancel your ${this.subjectName(booking.subjectCode)} booking on ${this.formatDate(booking.date)}?`)) return
+
+      try {
+        await deleteBooking(booking.bookingId)
+        this.$emit('refresh')
+        this.$emit('notify', { type: 'success', message: 'Booking cancelled.' })
+      } catch (e) {
+        this.$emit('notify', { type: 'error', message: e.message })
+      }
     },
 
     async confirmPay() {
@@ -557,7 +607,26 @@ export default {
   color: #1e7a58;
 }
 
-.row-actions-cell { justify-self: end; }
+.row-actions-cell {
+  justify-self: end;
+  display: flex;
+  gap: 8px;
+}
+
+.cancel-now-button {
+  background-color: #ffffff;
+  color: #c0392b;
+  border: 1px solid #e0a9a2;
+  border-radius: 7px;
+  padding: 7px 14px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.cancel-now-button:hover { background-color: #fbeae8; }
 
 .pay-now-button {
   background-color: #f28c28;

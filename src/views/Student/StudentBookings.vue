@@ -596,6 +596,7 @@ checkTutorAvailability() {
     ];
 
     const selectedDay = days[selectedDate.getDay()];
+    const selectedDateKey = String(date).split("T")[0];
     const selectedStart =
         selectedDate.getHours() * 60 + selectedDate.getMinutes();
 
@@ -604,10 +605,16 @@ checkTutorAvailability() {
     const slots = this.getTutorAvailability(tutorId);
 
     const matchingSlot = slots.find(slot => {
-        if (slot.day !== selectedDay) return false;
+        // date-specific availability
+        if (slot.date) {
+            if (slot.date !== selectedDateKey) return false;
+        } else if (slot.day !== selectedDay) {
+            // older weekly availability
+            return false;
+        }
 
-        const [startHour, startMinute] = slot.startTime.split(":").map(Number);
-        const [endHour, endMinute] = slot.endTime.split(":").map(Number);
+        const [startHour, startMinute] = String(slot.startTime).split(":").map(Number);
+        const [endHour, endMinute] = String(slot.endTime).split(":").map(Number);
 
         const slotStart = startHour * 60 + startMinute;
         const slotEnd = endHour * 60 + endMinute;
@@ -616,9 +623,17 @@ checkTutorAvailability() {
     });
 
     if (!matchingSlot) {
+        const when = selectedDate.toLocaleString("en-ZA", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit"
+        });
+
         this.availabilityMessage =
             `This tutor is not available for a ${duration}-minute session ` +
-            `at the selected time on ${selectedDay}. Please choose another time.`;
+            `on ${when}. Please choose another time.`;
 
         return false;
     }
@@ -638,8 +653,9 @@ checkTutorAvailability() {
 
             this.loading = true
             try {
-                await createBooking({
-                    bookingId: `BK-${Date.now()}`,
+                const bookingId = `BK-${Date.now()}`
+                const created = await createBooking({
+                    bookingId,
                     subjectCode: this.bookingForm.subjectCode,
                     sessionType: this.bookingForm.sessionType,
                     duration: String(this.bookingForm.duration),
@@ -650,8 +666,10 @@ checkTutorAvailability() {
 
                 this.bookingForm = { tutorId: '', subjectCode: '', sessionType: '', duration: '', date: '' }
                 this.$emit("refresh")
-                this.notify('success', 'Booking confirmed!')
-                this.changePage('bookings')
+                this.notify('success', 'Booking confirmed! Please complete your payment.')
+                this.$emit("open-payment", {
+                    bookingId: (created && created.bookingId) || bookingId
+                })
             } catch (e) {
                 this.notify('error', e.message)
             } finally {

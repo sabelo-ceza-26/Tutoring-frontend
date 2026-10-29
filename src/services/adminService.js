@@ -67,6 +67,23 @@ function enrichBookings(bookings, students, tutors) {
   })
 }
 
+function paidBookingIds(payments) {
+  return new Set(
+    (payments || [])
+      .filter(p => String(p.status || '').trim().toUpperCase() === 'PAID')
+      .map(p => String(p.booking && p.booking.bookingId))
+      .filter(Boolean)
+  )
+}
+
+function isPaidBooking(booking, paidIds) {
+  const status = booking && booking.payment
+    ? String(booking.payment.status || '').trim().toUpperCase()
+    : ''
+
+  return status === 'PAID' || paidIds.has(String(booking.bookingId))
+}
+
 function handleErrors(response) {
   if (!response.ok) {
     throw new Error(`Admin request failed: ${response.status} ${response.statusText}`)
@@ -109,8 +126,10 @@ export async function getDashboard() {
   const tutors = allTutors || []
   const students = allStudents || []
   const subjectList = subjects || []
-  const bookingList = enrichBookings(bookings, students, tutors)
   const paymentList = payments || []
+  const paidIds = paidBookingIds(paymentList)
+  const bookingList = enrichBookings(bookings, students, tutors)
+    .filter(b => isPaidBooking(b, paidIds))
 
   const stats = {
     totalStudents: students.length,
@@ -183,12 +202,15 @@ export async function getDashboard() {
 }
 
 export async function getBookingsWithPeople() {
-  const [bookings, students, tutors] = await Promise.all([
+  const [bookings, students, tutors, payments] = await Promise.all([
     getAllBookings(),
     getAllStudents(),
-    getAllTutors()
+    getAllTutors(),
+    getAllPayments()
   ])
+  const paidIds = paidBookingIds(payments)
   return enrichBookings(bookings, students, tutors)
+    .filter(b => isPaidBooking(b, paidIds))
 }
 
 export async function getAllAdmins() {

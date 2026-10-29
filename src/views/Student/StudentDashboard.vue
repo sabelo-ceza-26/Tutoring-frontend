@@ -1,362 +1,544 @@
 <template>
-    <div class="page-layout">
+    <div class="dashboard-layout">
 
-        <main class="page-content" :class="{ narrow: mode === 'form' }">
+        <main class="dashboard-content">
 
-            <!-- FORM MODE -->
-            <template v-if="mode === 'form'">
-
-                <section class="page-header">
-                    <div>
-                        <p class="header-label">SESSIONS</p>
-                        <h1>Book Session</h1>
-                        <p class="header-description">
-                            Pick a tutor, subject and time that suits you.
-                        </p>
-                    </div>
-                </section>
-
-                <div class="dashboard-card form-card">
-
-                    <div class="card-header">
-                        <div>
-                            <h2>Make a Tutoring Booking</h2>
-                            <p>Your session will be confirmed immediately</p>
-                        </div>
-                    </div>
-
-                    <form @submit.prevent="createNewBooking">
-                        <div class="grid-2">
-                            <label>Subject
-                                <select v-model="bookingForm.subjectCode" required>
-                                    <option value="" disabled>Select a subject</option>
-                                    <option v-for="s in subjects" :key="s.subjectCode" :value="s.subjectCode">
-                                        {{ s.subjectName }} ({{ s.subjectCode }})
-                                    </option>
-                                </select>
-                            </label>
-                            <label>Tutor
-                                <select v-model="bookingForm.tutorId" required>
-                                    <option value="" disabled>Select a tutor</option>
-                                    <option v-for="t in availableTutors" :key="t.tutorId" :value="t.tutorId">
-                                        {{ t.firstName }} {{ t.lastName }} &mdash; {{ fmtR(t.hourlyRate) }}/hr
-                                    </option>
-                                </select>
-                            </label>
-                            <label>Session Type
-                                <select v-model="bookingForm.sessionType" required>
-                                    <option value="" disabled>Select type</option>
-                                    <option>Online</option>
-                                    <option>In-person</option>
-                                </select>
-                            </label>
-                            <label>Duration
-                                <select v-model="bookingForm.duration" required>
-                                    <option value="" disabled>Select duration</option>
-                                    <option value="30">30 minutes</option>
-                                    <option value="60">60 minutes</option>
-                                    <option value="90">90 minutes</option>
-                                    <option value="120">120 minutes</option>
-                                </select>
-                            </label>
-                        </div>
-                        <label>Date &amp; Time
-                        <input v-model="bookingForm.date"
-                        type="datetime-local"
-                        :min="minDateTime"
-                        required
-                        >
-                        </label>
-
-                         <p v-if="availabilityMessage" class="availability-message">
-                           {{ availabilityMessage }}
-                         </p>
-                        <div v-if="estimatedCost !== null" class="cost-estimate">
-                            Estimated cost <strong>{{ fmtR(estimatedCost) }}</strong>
-                        </div>
-                        <button type="submit" class="submit-button block" :disabled="loading">
-                            {{ loading ? 'Booking...' : 'Confirm Booking' }}
-                        </button>
-                    </form>
-
+            <section class="dashboard-header">
+                <div class="header-text">
+                    <p class="header-label">STUDENT PORTAL</p>
+                    <h1>Welcome back, {{ fullName }}</h1>
+                    <p class="header-description">
+                        Here are your upcoming sessions.
+                    </p>
                 </div>
+            </section>
 
-            </template>
+            <!-- quick action buttons, pressing one swaps the view below to that section -->
+            <section class="quick-actions">
 
-            <!-- LIST MODE -->
-            <template v-else>
-
-                <section class="page-header">
-                    <div>
-                        <p class="header-label">SESSIONS</p>
-                        <h1>My Bookings</h1>
-                        <p class="header-description">
-                            Manage your upcoming sessions and payments.
-                        </p>
-                    </div>
+                <div class="action-buttons">
 
                     <button
-                    type="button"
-                    class="nav-action-button"
+                    class="action-button new-booking"
                     @click="changePage('book')"
                     >
                         + New Booking
                     </button>
-                </section>
 
-                <div class="dashboard-card">
+                    <button
+                    class="action-button"
+                    :class="{ active: activePanel === 'payments' }"
+                    @click="togglePanel('payments')"
+                    >
+                        Payments
+                    </button>
+
+                    <button
+                    class="action-button"
+                    :class="{ active: activePanel === 'history' }"
+                    @click="togglePanel('history')"
+                    >
+                        Booking History
+                    </button>
+
+                    <button
+                    class="action-button"
+                    :class="{ active: activePanel === 'tutors' }"
+                    @click="togglePanel('tutors')"
+                    >
+                        Find Tutors
+                    </button>
+
+                </div>
+
+            </section>
+
+            <!-- upcoming sessions table, this is the default view until a button above gets pressed -->
+            <section v-if="!activePanel" class="dashboard-row">
+
+                <div class="dashboard-card large-card">
 
                     <div class="card-header">
                         <div>
-                            <h2>Upcoming Bookings</h2>
-                            <p>Sessions you have scheduled</p>
+                            <h2>Upcoming Sessions</h2>
+                            <p>Your next scheduled tutoring sessions</p>
                         </div>
-                    </div>
-
-                    <div v-if="!upcomingBookings.length" class="empty-state">
-                        <div class="empty-circle">—</div>
-
-                        <h3>Nothing scheduled yet</h3>
-
-                        <p>Book a session with one of our tutors and it will show up here.</p>
 
                         <button
-                        class="outline-button book-cta"
-                        @click="changePage('book')"
+                            class="text-button"
+                            @click="changePage('bookings')"
                         >
-                            Book Your First Session
+                            Manage Bookings
                         </button>
                     </div>
 
-                    <div v-else class="table-scroll">
+                    <template v-if="upcomingBookings.length">
 
-                        <div class="table-header booking-columns">
-                            <span>When</span>
+                        <div class="table-header session-columns">
+                            <span>Date</span>
                             <span>Subject</span>
                             <span>Tutor</span>
+                            <span>Time</span>
                             <span>Type</span>
-                            <span>Duration</span>
-                            <span>Status</span>
-                            <span></span>
                         </div>
 
                         <div
                             v-for="b in upcomingBookings"
                             :key="b.bookingId"
-                            class="table-row booking-columns"
+                            class="table-row session-columns"
                         >
                             <span class="cell-strong">{{ formatDate(b.date) }}</span>
                             <span>{{ subjectName(b.subjectCode) }}</span>
                             <span>{{ tutorName(b.bookingId) }}</span>
+                            <span>{{ formatTime(b.date) }}</span>
                             <span>{{ b.sessionType }}</span>
-                            <span>{{ b.duration }} min</span>
-                            <span :class="['status-chip', b.payment ? 'paid' : 'unpaid']">
-                                {{ b.payment ? 'Paid' : 'Unpaid' }}
-                            </span>
-                            <span class="row-actions">
-                                <button
-                                    v-if="!b.payment"
-                                    type="button"
-                                    class="small-button"
-                                    @click="openPay(b)"
-                                >
-                                    Pay Now
-                                </button>
-                                <button
-                                    type="button"
-                                    class="small-button danger-outline"
-                                    @click="cancelBooking(b)"
-                                >
-                                    Cancel
-                                </button>
-                            </span>
                         </div>
 
+                    </template>
+
+                    <div v-else class="empty-state">
+                        <div class="empty-circle">—</div>
+
+                        <h3>No sessions scheduled</h3>
+
+                        <p>
+                            You don't have any tutoring sessions booked yet.
+                        </p>
                     </div>
 
                 </div>
 
-                <p v-if="error" class="error" style="margin: 8px 0">{{ error }}</p>
-
-                <div class="dashboard-card">
+                <!-- quick counts of the students activity -->
+                <div class="dashboard-card side-card">
 
                     <div class="card-header">
                         <div>
-                            <h2>Past Bookings</h2>
-                            <p>Completed and archived sessions</p>
+                            <h2>Session Overview</h2>
+                            <p>Your tutoring activity</p>
                         </div>
                     </div>
 
-                    <div v-if="!pastBookings.length" class="empty-state slim">
-                        <p class="muted">Completed sessions will be archived here.</p>
-                    </div>
+                    <div class="overview-list">
 
-                    <div v-else class="table-scroll">
+                        <div class="overview-item">
+                            <div>
+                                <span class="overview-dot"></span>
+                                <span>Upcoming</span>
+                            </div>
 
-                        <div class="table-header booking-columns">
-                            <span>When</span>
-                            <span>Subject</span>
-                            <span>Tutor</span>
-                            <span>Type</span>
-                            <span>Duration</span>
-                            <span>Status</span>
-                            <span></span>
+                            <strong>{{ upcomingBookings.length }}</strong>
                         </div>
 
-                        <div
-                            v-for="b in pastBookings"
-                            :key="b.bookingId"
-                            class="table-row booking-columns row-dim"
-                        >
-                            <span class="cell-strong">{{ formatDate(b.date) }}</span>
-                            <span>{{ subjectName(b.subjectCode) }}</span>
-                            <span>{{ tutorName(b.bookingId) }}</span>
-                            <span>{{ b.sessionType }}</span>
-                            <span>{{ b.duration }} min</span>
-                            <span :class="['status-chip', b.payment ? 'paid' : 'unpaid']">
-                                {{ b.payment ? 'Paid' : 'Unpaid' }}
-                            </span>
-                            <span class="row-actions">
-                                <button
-                                    v-if="!b.payment"
-                                    type="button"
-                                    class="small-button"
-                                    @click="openPay(b)"
-                                >
-                                    Pay Now
-                                </button>
-                            </span>
+                        <div class="overview-item">
+                            <div>
+                                <span class="overview-dot"></span>
+                                <span>Completed</span>
+                            </div>
+
+                            <strong>{{ pastBookings.length }}</strong>
+                        </div>
+
+                        <div class="overview-item">
+                            <div>
+                                <span class="overview-dot"></span>
+                                <span>Awaiting Payment</span>
+                            </div>
+
+                            <strong>{{ unpaidCount }}</strong>
                         </div>
 
                     </div>
 
                 </div>
 
-            </template>
+            </section>
 
-        </main>
+            <!-- PAYMENTS PANEL -->
+            <transition name="fade">
+                <div v-if="activePanel === 'payments'" class="dashboard-card full-width-panel">
 
-        <!-- To pay for a booking -->
-        <transition name="pop">
-            <div v-if="payTarget" class="modal-backdrop" @click.self="closePay">
-                <div class="modal">
-                    <div class="modal-head">
-                        <button type="button" class="back-btn" @click="closePay" aria-label="Go back">
-                            <i class="bi bi-arrow-left"></i>
-                        </button>
-                        <h3>Payment</h3>
-                        <button type="button" class="close-x" @click="closePay" aria-label="Close payment">&times;</button>
+                    <div class="card-header">
+                        <div>
+                            <h2>Make a Payment</h2>
+                            <p>{{ unpaidCount }} booking{{ unpaidCount === 1 ? '' : 's' }} awaiting payment &middot; {{ fmtR(totalSpent) }} paid so far</p>
+                        </div>
                     </div>
 
-                    <div class="modal-body-layout">
-                        <!-- Left: Payment Summary -->
-                        <div class="modal-left">
-                            <div class="payment-card summary-card">
-                                <div class="section-title">Payment Summary</div>
+                    <template v-if="unpaidBookings.length">
 
-                                <div class="booking-info">
-                                    <div class="info-row">
-                                        <span class="info-label">Booking ID</span>
-                                        <span class="info-value">{{ payTarget.bookingId }}</span>
-                                    </div>
-                                    <div class="info-row">
-                                        <span class="info-label">Subject</span>
-                                        <span class="info-value">{{ subjectName(payTarget.subjectCode) }}</span>
-                                    </div>
-                                    <div class="info-row">
-                                        <span class="info-label">Date</span>
-                                        <span class="info-value">{{ formatDate(payTarget.date) }}</span>
-                                    </div>
-                                    <div class="info-row">
-                                        <span class="info-label">Session</span>
-                                        <span class="session-badge">{{ formatSessionType(payTarget.sessionType) }}</span>
+                        <p class="section-subtitle">Awaiting Payment</p>
+
+                        <div class="table-scroll">
+
+                            <div class="table-header unpaid-columns">
+                                <span>When</span>
+                                <span>Subject</span>
+                                <span>Tutor</span>
+                                <span>Type</span>
+                                <span>Duration</span>
+                                <span>Amount Due</span>
+                                <span></span>
+                            </div>
+
+                            <div
+                                v-for="b in unpaidBookings"
+                                :key="b.bookingId"
+                                class="table-row unpaid-columns"
+                            >
+                                <span class="cell-strong">{{ formatDate(b.date) }}</span>
+                                <span>{{ subjectName(b.subjectCode) }}</span>
+                                <span>{{ tutorName(b.bookingId) }}</span>
+                                <span>{{ b.sessionType }}</span>
+                                <span>{{ b.duration }} min</span>
+                                <span class="cell-strong">{{ fmtR(amountDue(b)) }}</span>
+                                <span class="row-actions-cell">
+                                    <button
+                                        type="button"
+                                        class="pay-now-button"
+                                        @click="openPay(b)"
+                                    >
+                                        Pay Now
+                                    </button>
+                                </span>
+                            </div>
+
+                        </div>
+
+                    </template>
+
+                    <div v-else class="settled-note">
+                        You're all settled up - no bookings are awaiting payment.
+                    </div>
+
+                    <template v-if="recentPayments.length">
+
+                        <p class="section-subtitle spaced">Payment History</p>
+
+                        <div class="table-scroll">
+
+                            <div class="table-header payment-columns">
+                                <span>Reference</span>
+                                <span>Amount</span>
+                                <span>Date Paid</span>
+                                <span>Method</span>
+                                <span>Status</span>
+                                <span>For</span>
+                            </div>
+
+                            <div
+                                v-for="p in recentPayments"
+                                :key="p.paymentRef"
+                                class="table-row payment-columns"
+                            >
+                                <span class="mono">{{ p.paymentRef }}</span>
+                                <span class="cell-strong">{{ fmtR(p.amount) }}</span>
+                                <span>{{ formatDate(p.paymentDate) }}</span>
+                                <span>{{ p.paymentMethod }}</span>
+                                <span :class="['status-chip', 'paid']">{{ p.status }}</span>
+                                <span>{{ subjectName(p._subjectCode) }} &mdash; {{ formatDate(p._bookingDate) }}</span>
+                            </div>
+
+                        </div>
+
+                    </template>
+
+                </div>
+            </transition>
+
+            <!-- HISTORY PANEL -->
+            <transition name="fade">
+                <div v-if="activePanel === 'history'" class="dashboard-card full-width-panel">
+
+                    <div class="card-header">
+                        <div>
+                            <h2>Booking History</h2>
+                            <p>Every booking you have made, newest first</p>
+                        </div>
+                    </div>
+
+                    <template v-if="sortedHistory.length">
+
+                        <div class="table-scroll">
+
+                            <div class="table-header history-columns">
+                                <span>Booking ID</span>
+                                <span>Date</span>
+                                <span>Subject</span>
+                                <span>Tutor</span>
+                                <span>Type</span>
+                                <span>Duration</span>
+                                <span>Amount</span>
+                                <span>Status</span>
+                            </div>
+
+                            <div
+                                v-for="b in sortedHistory"
+                                :key="b.bookingId"
+                                class="table-row history-columns"
+                            >
+                                <span class="mono">{{ b.bookingId }}</span>
+                                <span class="cell-strong">{{ formatDate(b.date) }}</span>
+                                <span>{{ subjectName(b.subjectCode) }}</span>
+                                <span>{{ tutorName(b.bookingId) }}</span>
+                                <span>{{ b.sessionType }}</span>
+                                <span>{{ b.duration }} min</span>
+                                <span class="cell-strong">{{ b.payment ? fmtR(b.payment.amount) : '&mdash;' }}</span>
+                                <span :class="['status-chip', b.payment ? 'paid' : 'unpaid']">
+                                    {{ b.payment ? 'Paid' : 'Unpaid' }}
+                                </span>
+                            </div>
+
+                        </div>
+
+                    </template>
+
+                    <div v-else class="empty-state">
+                        <div class="empty-circle">—</div>
+
+                        <h3>No history yet</h3>
+
+                        <p>Every booking you make is recorded here.</p>
+                    </div>
+
+                </div>
+            </transition>
+
+            <!-- TUTORS PANEL: a card for each tutor, opens from the Find Tutors button -->
+            <transition name="fade">
+                <div v-if="activePanel === 'tutors'" class="panel-section">
+
+                    <div v-if="!tutors.length" class="dashboard-card">
+
+                        <div class="empty-state">
+                            <div class="empty-circle">—</div>
+
+                            <h3>No tutors listed yet</h3>
+
+                            <p>Check back soon - tutors appear here as they join.</p>
+                        </div>
+
+                    </div>
+
+                    <div v-else class="tutor-grid">
+
+                        <div v-for="t in tutors" :key="t.tutorId" class="tutor-card">
+
+                            <div class="tutor-top">
+                                <div class="tutor-avatar">{{ t.firstName.charAt(0) }}{{ t.lastName.charAt(0) }}</div>
+
+                                <div class="tutor-name">
+                                    <h3>{{ t.firstName }} {{ t.lastName }}</h3>
+                                    <p>{{ t.tutorId }}</p>
+                                </div>
+                            </div>
+
+                            <span class="rate-badge">{{ fmtR(t.hourlyRate) }}/hr</span>
+
+                            <div class="tutor-meta">
+                                <p>&#9993; {{ t.email }}</p>
+                                <p>&#128222; {{ t.phoneNumber }}</p>
+                            </div>
+
+                            <button
+                            type="button"
+                            class="book-button"
+                            @click="$emit('book-with', t.tutorId)"
+                            >
+                                Book with {{ t.firstName }}
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            </transition>
+
+            <!-- PROFILE PANEL: edit form, opens from the Profile button on the banner -->
+            <transition name="fade">
+                <div v-if="activePanel === 'profile'" class="panel-section narrow">
+                    <StudentProfile
+                        embedded
+                        :me="me"
+                        @refresh="$emit('refresh')"
+                        @notify="forwardNotify"
+                    />
+                </div>
+            </transition>
+
+            <!-- PAY MODAL -->
+            <transition name="fade">
+                <div v-if="payTarget" class="modal-backdrop" @click.self="closePay">
+                    <div class="modal">
+                        <div class="modal-head">
+                            <button type="button" class="back-btn" @click="closePay">
+                                <i class="bi bi-arrow-left"></i>
+                            </button>
+                            <h3>Payment</h3>
+                            <button type="button" class="close-x" @click="closePay">&times;</button>
+                        </div>
+
+                        <div class="modal-body-layout">
+                            <!-- Left: Booking Details + Summary -->
+                            <div class="modal-left">
+                                <div class="payment-card">
+                                    <div class="section-title">Booking Details</div>
+                                    <div class="booking-info">
+                                        <div class="info-row">
+                                            <span class="info-label">Booking ID</span>
+                                            <span class="info-value">{{ payTarget.bookingId }}</span>
+                                        </div>
+                                        <div class="info-row">
+                                            <span class="info-label">Subject</span>
+                                            <span class="info-value">{{ subjectName(payTarget.subjectCode) }}</span>
+                                        </div>
+                                        <div class="info-row">
+                                            <span class="info-label">Date</span>
+                                            <span class="info-value">{{ formatDate(payTarget.date) }}</span>
+                                        </div>
+                                        <div class="info-row">
+                                            <span class="info-label">Duration</span>
+                                            <span class="info-value">{{ payTarget.duration }} minutes</span>
+                                        </div>
+                                        <div class="info-row">
+                                            <span class="info-label">Tutor</span>
+                                            <span class="info-value">{{ tutorName(payTarget.bookingId) }}</span>
+                                        </div>
+                                        <div class="info-row">
+                                            <span class="info-label">Hourly Rate</span>
+                                            <span class="info-value">R{{ tutorHourlyRate(payTarget).toFixed(2) }}</span>
+                                        </div>
+                                        <div class="info-row">
+                                            <span class="info-label">Session</span>
+                                            <span class="session-badge">{{ formatSessionType(payTarget.sessionType) }}</span>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div class="price-row">
+                                <div class="payment-card">
+                                    <div class="section-title">Payment Summary</div>
+                                    <div class="price-row">
                                         <span class="price-label">Tutor hourly rate</span>
                                         <span class="price-value">R{{ tutorHourlyRate(payTarget).toFixed(2) }}</span>
                                     </div>
-                                <div class="price-row">
-                                    <span class="price-label">Duration</span>
-                                    <span class="price-value">{{ (Number(payTarget.duration || 0) / 60).toFixed(2) }} hour(s)</span>
-                                </div>
-                                <div class="price-summary">
-                                    <div class="total-row">
-                                        <span class="total-label">Total</span>
-                                        <span class="total-amount">R{{ paymentForm.amount.toFixed(2) }}</span>
+                                    <div class="price-row">
+                                        <span class="price-label">Duration</span>
+                                        <span class="price-value">{{ (Number(payTarget.duration || 0) / 60).toFixed(2) }} hour(s)</span>
+                                    </div>
+                                    <div class="price-summary">
+                                        <div class="total-row">
+                                            <span class="total-label">Total</span>
+                                            <span class="total-amount">R{{ paymentForm.amount.toFixed(2) }}</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Right: Online Payment -->
-                        <div class="modal-right">
-                            <div class="payment-card">
-                                <div class="section-title">Online Payment</div>
-                                <div class="payment-option selected">
-                                    <div class="payment-option-content">
-                                        <div class="payment-icon"><i class="bi bi-credit-card"></i></div>
-                                        <div>
-                                            <div class="payment-option-title">Pay by Card</div>
-                                            <p class="payment-option-text">Enter your card details to continue.</p>
+                            <!-- Right: Payment Method -->
+                            <div class="modal-right">
+                                <div class="payment-card">
+                                    <div class="section-title">Payment Method</div>
+
+                                    <div
+                                        class="payment-option"
+                                        :class="{ selected: paymentForm.paymentMethod === 'CASH' }"
+                                        @click="paymentForm.paymentMethod = 'CASH'"
+                                    >
+                                        <div class="payment-option-content">
+                                            <input type="radio" value="CASH" v-model="paymentForm.paymentMethod">
+                                            <div class="payment-icon"><i class="bi bi-cash"></i></div>
+                                            <div>
+                                                <div class="payment-option-title">Pay in Person</div>
+                                                <p class="payment-option-text">Pay the tutor directly during your session.</p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div class="card-details">
-                                    <div class="mb-3">
-                                        <label class="form-label">Cardholder Name</label>
-                                        <input type="text" class="form-control" v-model="cardName" placeholder="Enter cardholder name" autocomplete="cc-name">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Card Number</label>
-                                        <input type="text" class="form-control" v-model="cardNumber" placeholder="1234 5678 9012 3456" autocomplete="cc-number" inputmode="numeric">
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-6">
-                                            <label class="form-label">Expiry Date</label>
-                                            <input type="text" class="form-control" v-model="expiryDate" placeholder="MM / YY" autocomplete="cc-exp">
-                                        </div>
-                                        <div class="col-6">
-                                            <label class="form-label">CVV</label>
-                                            <input type="password" class="form-control" v-model="cvv" placeholder="•••" autocomplete="cc-csc" inputmode="numeric">
+                                    <div
+                                        class="payment-option"
+                                        :class="{ selected: paymentForm.paymentMethod === 'Card' }"
+                                        @click="paymentForm.paymentMethod = 'Card'"
+                                    >
+                                        <div class="payment-option-content">
+                                            <input type="radio" value="Card" v-model="paymentForm.paymentMethod">
+                                            <div class="payment-icon"><i class="bi bi-credit-card"></i></div>
+                                            <div>
+                                                <div class="payment-option-title">Online Payment</div>
+                                                <p class="payment-option-text">Pay securely using your card.</p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <p v-if="modalError" class="modal-error">{{ modalError }}</p>
+                                    <div v-if="paymentForm.paymentMethod === 'CASH'" class="in-person-info">
+                                        <div class="info-flex">
+                                            <i class="bi bi-info-circle"></i>
+                                            <div>
+                                                <h6>Pay the tutor in person</h6>
+                                                <p>You will pay the tutor directly during your session. The payment will remain pending until the tutor confirms that payment has been received.</p>
+                                            </div>
+                                        </div>
+                                    </div>
 
-                                <button class="payment-btn" :disabled="loading" @click="confirmPay">
-                                    <span v-if="loading"><span class="spinner-border spinner-border-sm me-2"></span>Processing...</span>
-                                    <span v-else>
-                                        <i class="bi bi-lock-fill me-2"></i>
-                                        Pay {{ fmtR(paymentForm.amount) }}
-                                    </span>
-                                </button>
+                                    <div v-if="paymentForm.paymentMethod === 'Card'" class="card-details">
+                                        <div class="mb-3">
+                                            <label class="form-label">Cardholder Name</label>
+                                            <input type="text" class="form-control" v-model="cardName" placeholder="Enter cardholder name">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Card Number</label>
+                                            <input type="text" class="form-control" v-model="cardNumber" placeholder="1234 5678 9012 3456">
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <label class="form-label">Expiry Date</label>
+                                                <input type="text" class="form-control" v-model="expiryDate" placeholder="MM / YY">
+                                            </div>
+                                            <div class="col-6">
+                                                <label class="form-label">CVV</label>
+                                                <input type="password" class="form-control" v-model="cvv" placeholder="•••">
+                                            </div>
+                                        </div>
+                                    </div>
 
-                                <div class="secure-text">
-                                    <i class="bi bi-shield-check"></i>
-                                    Demo payment form — no payment gateway is connected.
+                                    <p v-if="modalError" class="modal-error">{{ modalError }}</p>
+
+                                    <button class="payment-btn" :disabled="paying" @click="confirmPay">
+                                        <span v-if="paying"><span class="spinner-border spinner-border-sm me-2"></span>Processing...</span>
+                                        <span v-else>
+                                            <i v-if="paymentForm.paymentMethod === 'Card'" class="bi bi-lock-fill me-2"></i>
+                                            <i v-else class="bi bi-check-circle me-2"></i>
+                                            {{ paymentForm.paymentMethod === 'Card' ? 'Pay ' + fmtR(paymentForm.amount) : 'Confirm Payment' }}
+                                        </span>
+                                    </button>
+
+                                    <div v-if="paymentForm.paymentMethod === 'Card'" class="secure-text">
+                                        <i class="bi bi-shield-check"></i>
+                                        Your payment information is secure.
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </transition>
+            </transition>
+
+        </main>
 
     </div>
 </template>
 
 <script>
-import { getSession } from '@/services/authService'
-import { createBooking, deleteBooking } from '@/services/bookingService'
+import StudentProfile from './StudentProfile.vue'
 import { createPayment } from '@/services/paymentService'
 
 export default {
-    name: "StudentBookings",
+    name: "StudentDashboard",
 
+    components: {
+        StudentProfile
+    },
+
+    // all of this info gets passed down from StudentManagement
     props: {
         me: {
             type: Object,
@@ -373,17 +555,7 @@ export default {
             default: () => []
         },
 
-        tutorSubjects: {
-            type: Array,
-            default: () => []
-        },
-
-        mode: {
-            type: String,
-            default: "list"
-        },
-
-        selectedTutorId: {
+        initialPanel: {
             type: String,
             default: ""
         }
@@ -391,27 +563,47 @@ export default {
 
     data() {
         return {
-            loading: false,
-            error: "",
-            modalError: "",
-            availabilityMessage: "",
-            session: getSession(),
+            activePanel: "",
             payTarget: null,
             paymentForm: { amount: 0, paymentMethod: "" },
+            modalError: "",
+            paying: false,
             cardName: "",
             cardNumber: "",
             expiryDate: "",
-            cvv: "",
-            bookingForm: { tutorId: '', subjectCode: '', sessionType: '', duration: '', date: '' }
+            cvv: ""
+        }
+    },
+
+    // lets the side bar open a panel here from outside the page
+    // an empty value closes any open panel and goes back to the default view
+    watch: {
+        initialPanel: {
+            immediate: true,
+            handler(value) {
+                this.activePanel = value || ""
+            }
         }
     },
 
     computed: {
+        // quick way to get the bookings list
         myBookings() {
             return this.me.bookings || []
         },
 
-        // bookings with a date in the future, soonest first
+        // full name used in the welcome message
+        fullName() {
+            const name = `${this.me.firstName || ''} ${this.me.lastName || ''}`.trim()
+
+            if (name) {
+                return name
+            }
+
+            return "Student"
+        },
+
+        // sessions that havent happened yet, soonest first
         upcomingBookings() {
             const now = Date.now()
             return this.myBookings
@@ -419,7 +611,7 @@ export default {
                 .sort((a, b) => new Date(a.date) - new Date(b.date))
         },
 
-        // bookings already done, newest first
+        // sessions already done, newest first
         pastBookings() {
             const now = Date.now()
             return this.myBookings
@@ -427,57 +619,37 @@ export default {
                 .sort((a, b) => new Date(b.date) - new Date(a.date))
         },
 
-        // live price based on the tutors rate and the minutes picked
-        estimatedCost() {
-            const tutor = this.tutors.find(t => t.tutorId === this.bookingForm.tutorId)
-            if (!tutor || !this.bookingForm.duration) return null
-            return (Number(tutor.hourlyRate || 0) * Number(this.bookingForm.duration)) / 60
+        // every booking sorted newest first
+        sortedHistory() {
+            return [...this.myBookings].sort((a, b) => new Date(b.date) - new Date(a.date))
         },
 
-        // tutors who teach the selected subject, or all tutors if none selected
-        availableTutors() {
-            if (!this.bookingForm.subjectCode) return this.tutors
-            const tutorIds = this.tutorSubjects
-                .filter(ts => ts.subjectCode === this.bookingForm.subjectCode)
-                .map(ts => ts.tutorId)
-            return this.tutors.filter(t => tutorIds.includes(t.tutorId))
+        // pulls the payment info out of each booking, newest first
+        recentPayments() {
+            return this.myBookings
+                .filter(b => b.payment)
+                .map(b => ({
+                    ...b.payment,
+                    _subjectCode: b.subjectCode,
+                    _bookingDate: b.date
+                }))
+                .sort((a, b) => new Date(b.paymentDate) - new Date(a.paymentDate))
         },
 
-        minDateTime() {
-            const d = new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-            return d.toISOString().slice(0, 16)
-        }
-    },
-
-    watch: {
-        // fills the tutor in automatically when you came from a "book with" button
-        selectedTutorId: {
-            immediate: true,
-            handler(value) {
-                if (value) {
-                    this.bookingForm.tutorId = value
-                }
-            }
+        // bookings with no payment yet, soonest first
+        unpaidBookings() {
+            return this.myBookings
+                .filter(b => !b.payment)
+                .sort((a, b) => new Date(a.date) - new Date(b.date))
         },
 
-        // when a subject is picked, auto-fill the tutor if one teaches it
-        'bookingForm.subjectCode'(code) {
-            if (!code) return
-            const match = this.tutorSubjects.find(ts => ts.subjectCode === code)
-            if (match) {
-                this.bookingForm.tutorId = match.tutorId
-            } else {
-                this.bookingForm.tutorId = ''
-            }
+        unpaidCount() {
+            return this.unpaidBookings.length
         },
-        'bookingForm.tutorId'() {
-            this.availabilityMessage = ''
-        },
-        'bookingForm.date'() {
-            this.availabilityMessage = ''
-        },
-        'bookingForm.duration'() {
-            this.availabilityMessage = ''
+
+        // adds up every payment made so far
+        totalSpent() {
+            return this.myBookings.reduce((sum, b) => sum + Number(b.payment ? b.payment.amount : 0), 0)
         }
     },
 
@@ -486,150 +658,38 @@ export default {
             this.$emit("change-page", page)
         },
 
-        notify(type, message) {
-            this.$emit("notify", { type, message })
+        // opens the clicked panel, or closes it if its already open
+        togglePanel(name) {
+            this.activePanel = this.activePanel === name ? "" : name
+            this.$emit("panel-change", this.activePanel)
         },
 
-        fmtR(value) {
-            return `R${Number(value || 0).toFixed(2)}`
+        forwardNotify(notification) {
+            this.$emit("notify", notification)
         },
 
-        subjectName(code) {
-            const s = this.subjects.find(x => x.subjectCode === code)
-            return s ? s.subjectName : code
+        // what the student owes for a booking, based on the tutors hourly rate
+        amountDue(booking) {
+            const tutor = this.tutors.find(t => (t.bookings || []).some(x => x.bookingId === booking.bookingId))
+            if (!tutor) return 0
+            return Number((Number(tutor.hourlyRate || 0) * (Number(booking.duration || 60) / 60)).toFixed(2))
         },
 
-        tutorName(bookingId) {
-            for (const t of this.tutors) {
-                if ((t.bookings || []).some(b => b.bookingId === bookingId)) {
-                    return `${t.firstName} ${t.lastName}`
-                }
-            }
-            return 'Unknown'
+        tutorHourlyRate(booking) {
+            const tutor = this.tutors.find(t => (t.bookings || []).some(x => x.bookingId === booking.bookingId))
+            return tutor ? Number(tutor.hourlyRate || 0) : 0
         },
 
-        formatDate(value) {
-            if (!value) return '-'
-            return new Date(value).toLocaleString('en-ZA', {
-                year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-            })
-        },
-
-        getTutorAvailability(tutorId) {
-    if (!tutorId) return [];
-
-    try {
-        return JSON.parse(
-            localStorage.getItem(`tutorAvailability_${tutorId}`) || "[]"
-        );
-    } catch {
-        return [];
-    }
-},
-
-checkTutorAvailability() {
-    this.availabilityMessage = "";
-
-    const { tutorId, date, duration } = this.bookingForm;
-
-    if (!tutorId || !date || !duration) {
-        this.availabilityMessage = "Please select a tutor, date and duration.";
-        return false;
-    }
-
-    const selectedDate = new Date(date);
-
-    if (Number.isNaN(selectedDate.getTime())) {
-        this.availabilityMessage = "Please select a valid date and time.";
-        return false;
-    }
-
-    const days = [
-        "Sunday", "Monday", "Tuesday", "Wednesday",
-        "Thursday", "Friday", "Saturday"
-    ];
-
-    const selectedDay = days[selectedDate.getDay()];
-    const selectedStart =
-        selectedDate.getHours() * 60 + selectedDate.getMinutes();
-
-    const selectedEnd = selectedStart + Number(duration);
-
-    const slots = this.getTutorAvailability(tutorId);
-
-    const matchingSlot = slots.find(slot => {
-        if (slot.day !== selectedDay) return false;
-
-        const [startHour, startMinute] = slot.startTime.split(":").map(Number);
-        const [endHour, endMinute] = slot.endTime.split(":").map(Number);
-
-        const slotStart = startHour * 60 + startMinute;
-        const slotEnd = endHour * 60 + endMinute;
-
-        return selectedStart >= slotStart && selectedEnd <= slotEnd;
-    });
-
-    if (!matchingSlot) {
-        this.availabilityMessage =
-            `This tutor is not available for a ${duration}-minute session ` +
-            `at the selected time on ${selectedDay}. Please choose another time.`;
-
-        return false;
-    }
-
-    return true;
-},
-
-        // checks the date, saves the booking then jumps back to the list
-        async createNewBooking() {
-            if (!this.checkTutorAvailability()) {
-                return;
-            }
-            if (new Date(this.bookingForm.date).getTime() <= Date.now()) {
-                this.notify('error', 'Please choose a future date and time.')
-                return
-            }
-
-            this.loading = true
-            try {
-                await createBooking({
-                    bookingId: `BK-${Date.now()}`,
-                    subjectCode: this.bookingForm.subjectCode,
-                    sessionType: this.bookingForm.sessionType,
-                    duration: String(this.bookingForm.duration),
-                    date: `${this.bookingForm.date}:00`,
-                    student: { studentNumber: this.session.id },
-                    tutor: { tutorId: this.bookingForm.tutorId }
-                })
-
-                this.bookingForm = { tutorId: '', subjectCode: '', sessionType: '', duration: '', date: '' }
-                this.$emit("refresh")
-                this.notify('success', 'Booking confirmed!')
-                this.changePage('bookings')
-            } catch (e) {
-                this.notify('error', e.message)
-            } finally {
-                this.loading = false
-            }
-        },
-
-        // opens the pay pop up and works out the amount from the tutors rate
+        // opens the pay window with the amount already worked out
         openPay(booking) {
             this.modalError = ""
             this.cardName = ""
             this.cardNumber = ""
             this.expiryDate = ""
             this.cvv = ""
-            const tutor = this.tutors.find(t => (t.bookings || []).some(b => b.bookingId === booking.bookingId))
-            const hours = Number(booking.duration || 60) / 60
-            this.paymentForm.amount = tutor ? Number((Number(tutor.hourlyRate || 0) * hours).toFixed(2)) : 0
-            this.paymentForm.paymentMethod = "Card"
+            this.paymentForm.amount = this.amountDue(booking)
+            this.paymentForm.paymentMethod = this.isInPerson(booking.sessionType) ? "CASH" : "Card"
             this.payTarget = booking
-        },
-
-        tutorHourlyRate(booking) {
-            const tutor = this.tutors.find(t => (t.bookings || []).some(b => b.bookingId === booking.bookingId))
-            return tutor ? Number(tutor.hourlyRate || 0) : 0
         },
 
         closePay() {
@@ -637,21 +697,7 @@ checkTutorAvailability() {
             this.modalError = ""
         },
 
-        // double checks with the student first, then cancels on the backend
-        async cancelBooking(booking) {
-            if (!window.confirm(`Cancel your ${this.subjectName(booking.subjectCode)} booking on ${this.formatDate(booking.date)}?`)) return
-
-            this.error = ""
-            try {
-                await deleteBooking(booking.bookingId)
-                this.$emit("refresh")
-                this.notify('success', 'Booking cancelled.')
-            } catch (e) {
-                this.error = e.message
-            }
-        },
-
-        // sends the payment through to the backend
+        // saves the payment to the database and links it to the booking
         async confirmPay() {
             this.modalError = ""
             if (!this.paymentForm.paymentMethod) {
@@ -668,7 +714,7 @@ checkTutorAvailability() {
                     return
                 }
             }
-            this.loading = true
+            this.paying = true
             try {
                 await createPayment({
                     paymentRef: `PM-${Date.now()}`,
@@ -680,12 +726,47 @@ checkTutorAvailability() {
                 })
                 this.closePay()
                 this.$emit("refresh")
-                this.notify('success', 'Payment successful!')
+                this.$emit("notify", { type: 'success', message: 'Payment successful!' })
             } catch (e) {
                 this.modalError = e.message
             } finally {
-                this.loading = false
+                this.paying = false
             }
+        },
+
+        // formats a number as rands like R150.00
+        fmtR(value) {
+            return `R${Number(value || 0).toFixed(2)}`
+        },
+
+        // looks up a subjects full name from its code
+        subjectName(code) {
+            const s = this.subjects.find(x => x.subjectCode === code)
+            return s ? s.subjectName : code
+        },
+
+        tutorName(bookingId) {
+            for (const t of this.tutors) {
+                if ((t.bookings || []).some(b => b.bookingId === bookingId)) {
+                    return `${t.firstName} ${t.lastName}`
+                }
+            }
+            return 'Unknown'
+        },
+
+        // readable date like 12 Mar 2026, 14:30
+        formatDate(value) {
+            if (!value) return '-'
+            return new Date(value).toLocaleString('en-ZA', {
+                year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+            })
+        },
+
+        formatTime(value) {
+            if (!value) return '-'
+            return new Date(value).toLocaleTimeString('en-ZA', {
+                hour: '2-digit', minute: '2-digit'
+            })
         },
 
         formatSessionType(type) {
@@ -703,7 +784,7 @@ checkTutorAvailability() {
 </script>
 
 <style scoped>
-.page-layout {
+.dashboard-layout {
   display: flex;
   min-height: 100vh;
   background-color: #f7f8fa;
@@ -712,17 +793,13 @@ checkTutorAvailability() {
   text-align: left;
 }
 
-.page-content {
+.dashboard-content {
   flex: 1;
   padding: 30px;
   box-sizing: border-box;
 }
 
-.page-content.narrow {
-  max-width: 820px;
-}
-
-.page-header {
+.dashboard-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -735,6 +812,10 @@ checkTutorAvailability() {
   margin-bottom: 22px;
 }
 
+.header-text {
+  min-width: 0;
+}
+
 .header-label {
   color: #f28c28;
   font-size: 11px;
@@ -743,7 +824,7 @@ checkTutorAvailability() {
   margin: 0 0 7px;
 }
 
-.page-header h1 {
+.dashboard-header h1 {
   font-size: 30px;
   margin: 0;
 }
@@ -754,17 +835,213 @@ checkTutorAvailability() {
   margin: 7px 0 0;
 }
 
+.ghost-button {
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  color: #ffffff;
+  border-radius: 7px;
+  padding: 11px 22px;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.ghost-button:hover,
+.ghost-button.active {
+  background-color: #f28c28;
+  border-color: #f28c28;
+}
+
+/* QUICK ACTIONS */
+.quick-actions {
+  margin-bottom: 22px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.action-button {
+  background-color: #ffffff;
+  color: #2c3e50;
+  border: 1px solid #e5e7eb;
+  border-radius: 7px;
+  padding: 11px 18px;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.action-button:hover {
+  border-color: #f28c28;
+  color: #b35c10;
+}
+
+.action-button.active {
+  background-color: #f28c28;
+  border-color: #f28c28;
+  color: #ffffff;
+  font-weight: bold;
+}
+
+.action-button.new-booking {
+  background-color: #2c3e50;
+  border-color: #2c3e50;
+  color: #ffffff;
+}
+
+.action-button.new-booking:hover {
+  background-color: #f28c28;
+  border-color: #f28c28;
+  color: #ffffff;
+}
+
+/* PANELS */
+.panel-section {
+  animation: panel-in 0.25s ease;
+}
+
+.panel-section.narrow {
+  max-width: 860px;
+}
+
+/* TUTOR CARDS */
+.tutor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 18px;
+  margin-bottom: 22px;
+}
+
+.tutor-card {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-top: 4px solid #f28c28;
+  border-radius: 10px;
+  padding: 22px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tutor-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(44, 62, 80, 0.12);
+}
+
+.tutor-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tutor-avatar {
+  width: 48px;
+  height: 48px;
+  background-color: #2c3e50;
+  color: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.tutor-name h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.tutor-name p {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: #8a94a3;
+}
+
+.rate-badge {
+  display: inline-block;
+  margin-top: 14px;
+  background: #fff3e7;
+  color: #b35c10;
+  font-weight: bold;
+  font-size: 13px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.tutor-meta {
+  margin: 16px 0 18px;
+  border-top: 1px solid #edf1f5;
+  padding-top: 14px;
+}
+
+.tutor-meta p {
+  margin: 6px 0;
+  font-size: 13px;
+  color: #55657a;
+  word-break: break-all;
+}
+
+.book-button {
+  display: block;
+  width: 100%;
+  background-color: #2c3e50;
+  color: #ffffff;
+  border: none;
+  border-radius: 7px;
+  padding: 11px 18px;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.book-button:hover {
+  background-color: #f28c28;
+}
+
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-enter-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter {
+  opacity: 0;
+}
+
+.dashboard-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+  margin-bottom: 22px;
+}
+
+.full-width-panel,
+.panel-section .dashboard-card {
+  margin-bottom: 22px;
+}
+
 .dashboard-card {
   background-color: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   padding: 22px;
-  margin-bottom: 22px;
-}
-
-.form-card {
-  border-top: 4px solid #f28c28;
-  padding: 26px;
 }
 
 .card-header {
@@ -787,68 +1064,6 @@ checkTutorAvailability() {
   margin: 4px 0 0;
 }
 
-/* TABLES */
-.table-scroll {
-  overflow-x: auto;
-}
-
-.table-header,
-.table-row {
-  display: grid;
-  grid-template-columns: 1.5fr 1.4fr 1.1fr 1fr 0.9fr 0.9fr 1.4fr;
-  padding: 12px 5px;
-  align-items: center;
-  min-width: 820px;
-}
-
-.table-header {
-  color: #8a94a3;
-  font-size: 10px;
-  font-weight: bold;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-}
-
-.table-row {
-  border-top: 1px solid #edf1f5;
-  font-size: 13px;
-}
-
-.row-dim {
-  color: #8a94a3;
-}
-
-.cell-strong {
-  font-weight: bold;
-}
-
-.row-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-}
-
-.status-chip {
-  justify-self: start;
-  padding: 3px 11px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: bold;
-  white-space: nowrap;
-}
-
-.status-chip.paid {
-  background: #e6f4ec;
-  color: #1e7a58;
-}
-
-.status-chip.unpaid {
-  background: #fce8e6;
-  color: #c0392b;
-}
-
-/* EMPTY STATES */
 .empty-state {
   min-height: 160px;
   display: flex;
@@ -856,10 +1071,6 @@ checkTutorAvailability() {
   justify-content: center;
   align-items: center;
   text-align: center;
-}
-
-.empty-state.slim {
-  min-height: 80px;
 }
 
 .empty-circle {
@@ -886,170 +1097,171 @@ checkTutorAvailability() {
   margin: 0;
 }
 
-.muted {
+.table-scroll {
+  overflow-x: auto;
+}
+
+.table-header,
+.table-row {
+  display: grid;
+  padding: 12px 5px;
+  align-items: center;
+}
+
+.table-header {
+  color: #8a94a3;
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.table-row {
+  border-top: 1px solid #edf1f5;
+  font-size: 13px;
+}
+
+.session-columns {
+  grid-template-columns: 1.4fr 1.4fr 1.1fr 0.8fr 0.9fr;
+}
+
+.payment-columns {
+  grid-template-columns: 1.1fr 0.8fr 1.3fr 0.8fr 0.9fr 1.6fr;
+  min-width: 820px;
+}
+
+.history-columns {
+  grid-template-columns: 1.2fr 1.5fr 1.3fr 1.1fr 1fr 0.9fr 0.9fr 0.9fr;
+  min-width: 1000px;
+}
+
+.cell-strong {
+  font-weight: bold;
+}
+
+.mono {
+  font-family: monospace;
+  font-size: 12px;
+  color: #61748a;
+}
+
+.status-chip {
+  justify-self: start;
+  padding: 3px 11px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.status-chip.paid {
+  background: #e6f4ec;
+  color: #1e7a58;
+}
+
+.status-chip.unpaid {
+  background: #fce8e6;
+  color: #c0392b;
+}
+
+.overview-list {
+  padding-top: 10px;
+}
+
+.overview-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 12px;
+}
+
+.overview-item div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.overview-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #f28c28;
+  border-radius: 50%;
+}
+
+.overview-item strong {
+  font-size: 15px;
+}
+
+.text-button {
+  border: none;
+  background: none;
+  color: #f28c28;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.text-button:hover {
+  text-decoration: underline;
+}
+
+/* PAYMENTS PANEL */
+.section-subtitle {
+  margin: 18px 0 6px;
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  text-transform: uppercase;
   color: #8a94a3;
 }
 
-.book-cta {
-  width: auto;
-  margin-top: 16px;
-  padding: 10px 18px;
+.section-subtitle.spaced {
+  margin-top: 26px;
 }
 
-.outline-button {
-  background-color: #ffffff;
-  color: #b35c10;
-  border: 1px solid #f28c28;
-  border-radius: 7px;
-  padding: 12px 18px;
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: bold;
-  cursor: pointer;
+.unpaid-columns {
+  grid-template-columns: 1.5fr 1.3fr 1.1fr 0.9fr 0.8fr 0.9fr 0.8fr;
+  min-width: 900px;
 }
 
-.outline-button:hover {
-  background-color: #fff7ef;
+.row-actions-cell {
+  justify-self: end;
 }
 
-/* BUTTONS */
-.nav-action-button {
-  background-color: rgba(255, 255, 255, 0.14);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.45);
-  border-radius: 7px;
-  padding: 11px 22px;
-  font-family: inherit;
-  font-size: 13px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.nav-action-button:hover {
+.pay-now-button {
   background-color: #f28c28;
-  border-color: #f28c28;
-}
-
-.small-button {
-  background-color: #2c3e50;
   color: #ffffff;
   border: none;
   border-radius: 7px;
-  padding: 7px 13px;
+  padding: 7px 14px;
   font-family: inherit;
   font-size: 12px;
+  font-weight: bold;
   cursor: pointer;
   white-space: nowrap;
 }
 
-.small-button:hover {
-  background-color: #f28c28;
-}
-
-.small-button.danger-outline {
-  background-color: #ffffff;
-  color: #c0392b;
-  border: 1px solid #e0a9a2;
-}
-
-.small-button.danger-outline:hover {
-  background-color: #fbeae8;
-}
-
-.submit-button {
+.pay-now-button:hover {
   background-color: #2c3e50;
-  color: #ffffff;
-  border: none;
-  border-radius: 7px;
-  padding: 12px 18px;
-  font-family: inherit;
-  font-size: 14px;
-  cursor: pointer;
 }
 
-.submit-button:hover {
-  background-color: #f28c28;
-}
-
-.submit-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.submit-button.block {
-  display: block;
-  width: 100%;
-  margin-top: 6px;
-}
-
-.error {
-  color: #c0392b;
-  font-size: 13px;
-  margin: 0 0 12px;
-}
-
-/* FORM */
-form {
-  margin-top: 20px;
-}
-
-.grid-2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-@media (max-width: 600px) {
-  .grid-2 {
-    grid-template-columns: 1fr;
-  }
-}
-
-label {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  font-size: 13px;
-  font-weight: bold;
-  color: #55657a;
-  text-align: left;
-  margin-bottom: 16px;
-}
-
-input,
-select {
-  padding: 11px 13px;
-  border: 1px solid #c5cfdc;
-  border-radius: 7px;
-  font-size: 14px;
-  font-weight: normal;
-  font-family: inherit;
-  color: #2c3e50;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-input:focus,
-select:focus {
-  outline: none;
-  border-color: #f28c28;
-  box-shadow: 0 0 0 3px rgba(242, 140, 40, 0.18);
-}
-
-.cost-estimate {
-  background: #fff3e7;
-  border: 1px solid #f9d4ae;
-  color: #b35c10;
+.settled-note {
+  padding: 16px;
+  background-color: #e6f4ec;
+  border: 1px solid #b7e4cd;
   border-radius: 8px;
-  padding: 12px 16px;
-  font-size: 14px;
-  margin-bottom: 18px;
+  color: #1e7a58;
+  font-size: 13px;
 }
 
-/* MODAL */
+/* PAY MODAL */
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(23, 37, 51, 0.55);
+  background: rgba(44, 62, 80, 0.55);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1079,7 +1291,7 @@ select:focus {
 .modal-head h3 {
   margin: 0;
   font-size: 20px;
-  color: #2c3e50;
+  color: #062b67;
   font-weight: 700;
 }
 
@@ -1089,7 +1301,7 @@ select:focus {
   border: none;
   border-radius: 50%;
   background-color: white;
-  color: #2c3e50;
+  color: #062b67;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   cursor: pointer;
   display: flex;
@@ -1136,40 +1348,16 @@ select:focus {
 }
 
 .section-title {
-  color: #2c3e50;
+  color: #062b67;
   font-size: 16px;
   font-weight: 700;
   margin-bottom: 18px;
 }
 
 .booking-info {
-  background-color: #fff7ef;
+  background-color: #f1f1f1;
   border-radius: 10px;
   padding: 15px;
-  margin-bottom: 20px;
-}
-
-.price-details {
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  padding: 0;
-  margin-top: 0;
-}
-
-.online-payment-heading {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: #fff7ef;
-  border: 1px solid #f9d4ae;
-  border-radius: 10px;
-  padding: 14px;
-  margin-bottom: 18px;
-}
-
-.online-payment-heading .payment-icon {
-  flex: 0 0 40px;
 }
 
 .info-row {
@@ -1186,8 +1374,8 @@ select:focus {
 .info-value { font-weight: 600; text-align: right; }
 
 .session-badge {
-  background-color: #fff3e7;
-  color: #2c3e50;
+  background-color: #e4edff;
+  color: #062b67;
   border-radius: 20px;
   padding: 5px 12px;
   font-size: 11px;
@@ -1219,7 +1407,7 @@ select:focus {
 .total-label { font-size: 15px; font-weight: 700; }
 
 .total-amount {
-  color: #2c3e50;
+  color: #062b67;
   font-size: 22px;
   font-weight: 700;
 }
@@ -1233,11 +1421,11 @@ select:focus {
   transition: 0.2s;
 }
 
-.payment-option:hover { border-color: #f28c28; }
+.payment-option:hover { border-color: #2563eb; }
 
 .payment-option.selected {
-  border: 2px solid #f28c28;
-  background-color: #fff7ef;
+  border: 2px solid #2563eb;
+  background-color: #f4f7ff;
 }
 
 .payment-option-content {
@@ -1246,14 +1434,14 @@ select:focus {
   gap: 12px;
 }
 
-.payment-option input { accent-color: #2c3e50; }
+.payment-option input { accent-color: #062b67; }
 
 .payment-icon {
   width: 40px;
   height: 40px;
   border-radius: 8px;
-  background-color: #fff3e7;
-  color: #2c3e50;
+  background-color: #e9efff;
+  color: #062b67;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -1262,6 +1450,22 @@ select:focus {
 
 .payment-option-title { font-size: 14px; font-weight: 600; }
 .payment-option-text { font-size: 11px; color: #777; margin: 2px 0 0; }
+
+.in-person-info {
+  background-color: #f4f7ff;
+  border-radius: 10px;
+  padding: 15px;
+  margin-top: 18px;
+}
+
+.info-flex {
+  display: flex;
+  gap: 12px;
+}
+
+.in-person-info i { color: #2563eb; font-size: 22px; }
+.in-person-info h6 { color: #062b67; font-size: 14px; font-weight: 700; margin: 0 0 4px; }
+.in-person-info p { color: #666; font-size: 12px; margin: 0; line-height: 1.5; }
 
 .card-details { margin-top: 20px; }
 
@@ -1275,12 +1479,11 @@ select:focus {
   font-size: 13px;
   width: 100%;
   box-sizing: border-box;
-  font-family: inherit;
 }
 
 .form-control:focus {
   background-color: #f1f1f1;
-  border: 1px solid #f28c28;
+  border: 1px solid #2563eb;
   box-shadow: none;
   outline: none;
 }
@@ -1294,7 +1497,7 @@ select:focus {
   width: 100%;
   border: none;
   border-radius: 8px;
-  background-color: #2c3e50;
+  background-color: #062b67;
   color: white;
   padding: 13px;
   margin-top: 18px;
@@ -1303,7 +1506,7 @@ select:focus {
   cursor: pointer;
 }
 
-.payment-btn:hover { background-color: #1f2d3a; }
+.payment-btn:hover { background-color: #041f4d; }
 .payment-btn:disabled { opacity: 0.7; cursor: not-allowed; }
 
 .secure-text {
@@ -1318,26 +1521,10 @@ select:focus {
   .modal-body-layout { flex-direction: column; }
 }
 
-/* TRANSITIONS */
-.pop-enter-active {
-  transition: opacity 0.2s ease;
-}
+@media (max-width: 1050px) {
 
-.pop-enter-active .modal {
-  transition: transform 0.2s ease-out;
-}
-
-.pop-enter,
-.pop-leave-to {
-  opacity: 0;
-}
-
-.pop-enter .modal {
-  transform: scale(0.92) translateY(10px);
-}
-.availability-message {
-    color: #c0392b;
-    font-size: 13px;
-    margin: -8px 0 16px;
+  .dashboard-row {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
